@@ -1,0 +1,63 @@
+name: Bug report
+description: Report something that does not work as expected.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for helping improve Insonia. English and Portuguese reports are welcome. For security vulnerabilities, use the private reporting link instead of this form."
+  - type: input
+    id: version
+    attributes:
+      label: Insonia version
+      placeholder: "For example: 1.2.0"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Mac and macOS version
+      description: "Find these in Apple menu > About This Mac. Do not include the serial number."
+      placeholder: "Mac model, Apple silicon or Intel, macOS version"
+    validations:
+      required: true
+  - type: dropdown
+    id: power
+    attributes:
+      label: Power source when the issue occurred
+      options:
+        - Connected to power
+        - Battery
+        - Both
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: agent_mode
+    attributes:
+      label: Was Allow agents to use the display enabled?
+      options:
+        - "No"
+        - "Yes"
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include whether the lid was open or closed and the session locked or unlocked.
+      placeholder: "1. Open Insonia…"
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior
+      description: Include the exact message shown in the panel, if any.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or relevant diagnostics
+      description: Optional. Remove personal information, private paths, and unrelated content before attaching anything.

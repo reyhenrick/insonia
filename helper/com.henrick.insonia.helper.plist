@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.henrick.insonia.helper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Library/PrivilegedHelperTools/com.henrick.insonia/helper.sh</string>
+	</array>
+	<!-- Acorda quando o app grava o estado desejado. -->
+	<key>WatchPaths</key>
+	<array>
+		<string>__STATE_DIR__</string>
+	</array>
+	<!-- No boot, reverte o disablesleep antes de qualquer coisa. -->
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+	<!-- WatchPaths can coalesce/drop events. This is also the logout watchdog. -->
+	<key>StartInterval</key>
+	<integer>10</integer>
+	<!-- Sem isto o launchd usa 10s entre execuções e o toggle demora até 10s
+	     para valer. O script é trivial e idempotente, então 1s é seguro. -->
+	<key>ThrottleInterval</key>
+	<integer>1</integer>
+</dict>
+</plist>

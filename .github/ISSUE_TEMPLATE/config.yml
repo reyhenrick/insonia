@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation and usage
+    url: https://github.com/reyhenrick/insonia#install-and-start
+    about: Read the setup instructions and troubleshooting guide.
+  - name: Report a security vulnerability privately
+    url: https://github.com/reyhenrick/insonia/security/advisories/new
+    about: Use a private report for vulnerabilities and sensitive security details.
