@@ -19,9 +19,11 @@ final class PanelWindow: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let core = PowerCore()
+    private lazy var updater = AppUpdater(core: core)
     private var watchers: Set<AnyCancellable> = []
     private var dismissMonitor: Any?
     /// Guardado porque o tamanho útil vem da hosting view; o container só
@@ -30,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var previewWindow: NSWindow?
 
     private func makePanelView() -> PanelView {
-        PanelView(core: core, onQuit: { [weak self] in self?.quit() })
+        PanelView(core: core, updater: updater, onQuit: { [weak self] in self?.quit() })
     }
 
     private lazy var panel: PanelWindow = {
@@ -78,6 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ note: Notification) {
         if CommandLine.arguments.contains("--agents") { core.setAgentsEnabled(true) }
         core.start(resumeActive: CommandLine.arguments.contains("--resume-active"))
+        updater.hidePanel = { [weak self] in self?.hidePanel() }
+        updater.showPanel = { [weak self] in self?.showPanel() }
+        updater.start()
 
         if let button = statusItem.button {
             button.action = #selector(statusItemClicked)
@@ -89,6 +94,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         core.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in
+                self?.refreshTooltip()
+                if self?.panel.isVisible == true { self?.layoutPanel() }
+            }
+            .store(in: &watchers)
+        updater.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] in
                 self?.refreshTooltip()
@@ -116,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Keep the authorization callback alive until it has finished all cleanup.
-        core.installingHelper || core.repairingGuardian ? .terminateCancel : .terminateNow
+        updater.terminationReply()
     }
 
     // MARK: - barra de menu
@@ -124,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// O ícone é uma view SwiftUI hospedada para poder usar `symbolEffect`;
     /// `NSImage` não anima.
     @MainActor private func installIcon(in button: NSStatusBarButton) {
-        let host = PassthroughHostingView(rootView: StatusIcon(core: core))
+        let host = PassthroughHostingView(rootView: StatusIcon(core: core, updater: updater))
         host.translatesAutoresizingMaskIntoConstraints = false
         button.addSubview(host)
         NSLayoutConstraint.activate([
@@ -135,6 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshTooltip() {
         statusItem.button?.toolTip = "Insonia: \(core.status)"
+            + (updater.updateAvailable ? " · " + L10n.text("ui.updateAvailable") : "")
     }
 
     @objc private func statusItemClicked() {
@@ -264,8 +277,10 @@ do {
     exit(1)
 }
 
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.accessory)
-app.run()
+MainActor.assumeIsolated {
+    let app = NSApplication.shared
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    app.setActivationPolicy(.accessory)
+    withExtendedLifetime(delegate) { app.run() }
+}

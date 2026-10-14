@@ -55,6 +55,10 @@
 "error.processTimeout" = "The operation timed out. Try again.";
 "error.persistJournal" = "Recovery could not be saved to disk. Brightness was not changed.";
 "error.installLocation" = "Move Insonia to Applications and open it there to install protection.";
+"error.updateBusy" = "Wait for system protection to finish before updating.";
+"error.updateRecovery" = "Wait for normal sleep and brightness recovery before updating.";
+"error.updateUnavailable" = "Updates are unavailable here. Open Insonia from Applications.";
+"error.updateStart" = "Could not start the updater: {0}.";
 "ui.authorizing" = "Waiting for authorization…";
 "ui.installProtection" = "Install system protection";
 "ui.updateProtection" = "Update system protection";
@@ -70,8 +74,14 @@
 "ui.quit" = "Quit";
 "ui.active" = "active";
 "ui.activeFor" = "active for {0}";
-"ui.help" = "Help";
 "ui.community" = "Source & contributions";
+"ui.checkUpdates" = "Check for updates…";
+"ui.updateAvailable" = "Update available";
+"ui.autoUpdates" = "Install updates automatically";
+"ui.updateWaiting" = "Update ready. Turn off Keep awake to install.";
+"ui.updatePreparing" = "Preparing update…";
+"ui.updateVersion" = "Version {0}";
+"ui.updatesDescription" = "New versions are checked automatically.";
 "ui.language" = "System language: {0}";
 "ui.previousInterruption" = "Previous interruption";
 "ui.acknowledge" = "Dismiss";

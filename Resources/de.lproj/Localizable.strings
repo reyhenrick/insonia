@@ -54,6 +54,10 @@
 "error.processTimeout" = "Der Vorgang hat zu lange gedauert. Versuche es erneut.";
 "error.persistJournal" = "Die Wiederherstellung konnte nicht auf dem Datenträger gespeichert werden. Die Helligkeit wurde nicht geändert.";
 "error.installLocation" = "Verschiebe Insonia in den Ordner „Programme“ und öffne die App dort, um den Schutz zu installieren.";
+"error.updateBusy" = "Warte, bis der Systemschutz den Vorgang abgeschlossen hat, bevor du aktualisierst.";
+"error.updateRecovery" = "Warte, bis der normale Ruhezustand und die Helligkeit wiederhergestellt sind, bevor du aktualisierst.";
+"error.updateUnavailable" = "Updates sind hier nicht verfügbar. Öffne Insonia aus dem Ordner „Programme“.";
+"error.updateStart" = "Der Updater konnte nicht gestartet werden: {0}.";
 "ui.authorizing" = "Warten auf Genehmigung…";
 "ui.installProtection" = "Systemschutz installieren";
 "ui.updateProtection" = "Systemschutz aktualisieren";
@@ -69,8 +73,14 @@
 "ui.quit" = "Beenden";
 "ui.active" = "aktiv";
 "ui.activeFor" = "seit {0} aktiv";
-"ui.help" = "Hilfe";
 "ui.community" = "Quellcode und Beiträge";
+"ui.checkUpdates" = "Nach Updates suchen…";
+"ui.updateAvailable" = "Update verfügbar";
+"ui.autoUpdates" = "Updates automatisch installieren";
+"ui.updateWaiting" = "Update bereit. Deaktiviere „Mac wach halten“, um es zu installieren.";
+"ui.updatePreparing" = "Update wird vorbereitet…";
+"ui.updateVersion" = "Version {0}";
+"ui.updatesDescription" = "Neue Versionen werden automatisch gesucht.";
 "ui.language" = "Systemsprache: {0}";
 "ui.previousInterruption" = "Vorherige Unterbrechung";
 "ui.acknowledge" = "Schließen";

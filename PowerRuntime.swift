@@ -50,6 +50,11 @@ struct GuardianPulse: Codable {
     var recoveryFailure: InsoniaFailure? = nil
 }
 
+struct UpdateRelaunchIntent: Codable {
+    let createdAt: TimeInterval
+    let offeredFromBuild: String?
+}
+
 enum GuardianHealthState: String {
     case ready, recovering, missing, unreadable, incompatible, future, stale, processExited
 }
@@ -97,6 +102,12 @@ final class RuntimeStore {
     var brightnessURL: URL { runtime.appendingPathComponent("brightness-restore.json") }
     var noticeURL: URL { runtime.appendingPathComponent("notice.json") }
     var guardianURL: URL { runtime.appendingPathComponent("guardian.json") }
+    var updateRelaunchURL: URL { runtime.appendingPathComponent("update-relaunch.json") }
+    var autostartBlockURL: URL { runtime.appendingPathComponent("autostart-blocked.json") }
+    var protectiveStopPending: Bool {
+        FileManager.default.fileExists(atPath: autostartBlockURL.path)
+            || FileManager.default.fileExists(atPath: noticeURL.path)
+    }
 
     func prepare() throws {
         try FileManager.default.createDirectory(at: runtime, withIntermediateDirectories: true,
@@ -152,7 +163,48 @@ final class RuntimeStore {
     /// An acknowledgement of an older incident cannot remove a newer one.
     func acknowledge(_ expected: RecoveryNotice) throws {
         try locked {
-            if try read(RecoveryNotice.self, at: noticeURL) == expected { try remove(noticeURL) }
+            if try read(RecoveryNotice.self, at: noticeURL) == expected {
+                // Acknowledging the message is not a request to restart the session.
+                // This also migrates notices written by versions before this latch.
+                try write(["createdAt": expected.date.timeIntervalSince1970], to: autostartBlockURL)
+                try remove(noticeURL)
+            }
+        }
+    }
+
+    func markUpdateRelaunch() throws {
+        try locked {
+            guard !FileManager.default.fileExists(atPath: sessionURL.path),
+                  !FileManager.default.fileExists(atPath: brightnessURL.path) else {
+                throw InsoniaFailure("error.updateRecovery")
+            }
+            try write(UpdateRelaunchIntent(createdAt: Date().timeIntervalSince1970, offeredFromBuild: nil), to: updateRelaunchURL)
+        }
+    }
+
+    func notePotentialUpdate(fromBuild: String) throws {
+        try locked {
+            // An offered update must never weaken an existing committed (or
+            // unreadable) relaunch intent left by an interrupted installation.
+            if FileManager.default.fileExists(atPath: updateRelaunchURL.path) { return }
+            try write(UpdateRelaunchIntent(createdAt: Date().timeIntervalSince1970,
+                offeredFromBuild: fromBuild), to: updateRelaunchURL)
+        }
+    }
+
+    /// An interrupted update also suppresses autostart once. Even a malformed
+    /// marker must not turn a protective shutdown into an automatic activation.
+    func consumeUpdateRelaunch(currentBuild: String? = nil) throws -> Bool {
+        try locked {
+            let present = FileManager.default.fileExists(atPath: updateRelaunchURL.path)
+            if let currentBuild, let intent = try? read(UpdateRelaunchIntent.self, at: updateRelaunchURL),
+               intent.offeredFromBuild == currentBuild {
+                // Offering a release is not installing it. Keep the evidence
+                // for a later actual replacement without changing ordinary login.
+                return false
+            }
+            if present { try remove(updateRelaunchURL) }
+            return present
         }
     }
 
@@ -184,8 +236,12 @@ final class SessionCoordinator {
         self.brightness = brightness
     }
 
-    func begin(mode: LidMode, pid: Int32 = getpid(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) throws -> SessionLease {
+    func begin(mode: LidMode, pid: Int32 = getpid(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime,
+               allowAfterProtectiveStop: Bool = true) throws -> SessionLease {
         try store.locked {
+            guard allowAfterProtectiveStop || !store.protectiveStopPending else {
+                throw InsoniaFailure("error.sessionRecovered")
+            }
             guard try store.read(SessionLease.self, at: store.sessionURL) == nil else {
                 throw InsoniaFailure("error.previousSession")
             }
@@ -203,6 +259,7 @@ final class SessionCoordinator {
                 throw error
             }
             try? store.remove(store.noticeURL)
+            try? store.remove(store.autostartBlockURL)
             store.log("session_started mode=\(mode.rawValue)")
             return lease
         }
@@ -297,8 +354,14 @@ final class SessionCoordinator {
         do { try restoreBrightnessLocked() } catch { failure = error }
         try? store.remove(store.heartbeatURL)
         do { try store.requestSleepDisabled(false) } catch { failure = error }
+        if let reason {
+            let notice = RecoveryNotice(date: Date(), reason: reason)
+            // Keep the old lease until this safety intent is durable. If storage
+            // is full, the guardian can retry and autostart still sees a session.
+            try store.write(["createdAt": notice.date.timeIntervalSince1970], to: store.autostartBlockURL)
+            do { try store.write(notice, to: store.noticeURL) } catch { failure = error }
+        }
         try store.remove(store.sessionURL)
-        if let reason { try store.write(RecoveryNotice(date: Date(), reason: reason), to: store.noticeURL) }
         store.log("session_ended" + (reason.map { " recovery=true reason=\($0.key)" } ?? ""))
         if let failure { throw failure }
     }

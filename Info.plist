@@ -13,9 +13,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.0</string>
+	<string>1.3.0</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>
@@ -35,5 +35,25 @@
 	</array>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Henrick Clemente. MIT License.</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>UIMmxJzt6DtrG3UbL6u7umOHvtpbwAaCHqEgy+BAuOY=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUEnableJavaScript</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUSignedFeedFailureExpirationInterval</key>
+	<integer>0</integer>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

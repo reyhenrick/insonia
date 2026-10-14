@@ -82,6 +82,82 @@ final class FakeBrightness: BrightnessControlling {
         try check(GuardianHealth.evaluate(pulse, now: 101, processAlive: { _ in false }).state == .processExited, "dead guardian blocked")
         try check(GuardianHealth.evaluate(nil, now: 101, processAlive: { _ in true }).state == .missing, "missing guardian blocked")
         try check(GuardianHealth.evaluate(GuardianPulse(version: 2, pid: 123, uptime: 100), now: 101, processAlive: { _ in true }).state == .incompatible, "old guardian blocked")
+        let idle = UpdateReadiness(sleepDisabled: false, normalSleepConfirmed: true)
+        try check(idle.canInstall, "normal sleep and clear journals allow installation")
+        try check(!UpdateReadiness(sleepDisabled: false, normalSleepConfirmed: false).canInstall,
+            "an old OS zero without a fresh root receipt cannot permit installation")
+        let oldSleepReceipt = HelperReceipt("3 100 0 -")!
+        let freshSleepReceipt = HelperReceipt("3 101 0 -")!
+        try check(!oldSleepReceipt.confirmsNormalSleep(after: 100.25, now: 101), "pre-stop zero receipt is rejected")
+        try check(freshSleepReceipt.confirmsNormalSleep(after: 100.25, now: 102), "later root receipt confirms normal sleep")
+        try check(!freshSleepReceipt.confirmsNormalSleep(after: 100.25, now: 127), "expired normal-sleep receipt is rejected")
+        try check(!freshSleepReceipt.isRecent(now: 100), "future helper receipt is rejected")
+        try check(HelperReceipt("3 nan 0 -") == nil, "non-finite helper receipt is rejected")
+        try check(HelperReceipt("3 100 1 -") == nil, "active helper receipt must identify its session")
+        for state in [UpdateReadiness(sessionActive: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(protectionBusy: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(stopPending: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(persistedSession: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(brightnessPending: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(guardianRecovering: true, sleepDisabled: false, normalSleepConfirmed: true),
+                      UpdateReadiness(sleepDisabled: true), UpdateReadiness(sleepDisabled: nil)] {
+            try check(!state.canInstall, "every busy, recovery or unreadable condition defers installation")
+        }
+        for preference in [false, true] {
+            for resume in [false, true] {
+                try check(!LaunchPolicy.shouldActivate(preference: preference, resumeRequested: resume,
+                    updateRelaunch: true, recoveryNoticePresent: false), "update relaunch never starts an awake session")
+                try check(!LaunchPolicy.shouldActivate(preference: preference, resumeRequested: resume,
+                    updateRelaunch: false, recoveryNoticePresent: true), "protective incident requires manual reactivation")
+            }
+        }
+        try check(LaunchPolicy.shouldActivate(preference: true, resumeRequested: false,
+            updateRelaunch: false, recoveryNoticePresent: false), "ordinary clean login respects autostart preference")
+        let installGate = UpdateInstallGate()
+        var installations = 0
+        var preparations = 0
+        installGate.enqueue { installations += 1 }
+        try installGate.advance(readiness: UpdateReadiness(sessionActive: true, sleepDisabled: true)) { preparations += 1 }
+        try check(installations == 0 && preparations == 0 && installGate.isWaiting, "active work is never interrupted by an update")
+        try rejects("failed preparation cannot hand off installation") {
+            try installGate.advance(readiness: idle) { throw InsoniaFailure("simulated preparation failure") }
+        }
+        try check(installations == 0 && installGate.isWaiting, "failed preparation retains the continuation for retry")
+        try installGate.advance(readiness: idle) { preparations += 1 }
+        try installGate.advance(readiness: idle) { preparations += 1 }
+        try check(installations == 1 && preparations == 1, "installation continuation runs exactly once")
+        installGate.enqueue { installations += 10 }
+        installGate.cancel()
+        try installGate.advance(readiness: idle) { preparations += 1 }
+        try check(installations == 1, "cancelled update never installs")
+        installGate.enqueue {
+            installations += 1
+            installGate.enqueue { installations += 1 }
+        }
+        try installGate.advance(readiness: idle) { }
+        try check(installations == 2 && installGate.isWaiting, "reentrant callback preserves next installation stage")
+        try installGate.advance(readiness: idle) { }
+        try check(installations == 3 && !installGate.isWaiting, "second stage completes exactly once")
+        var retryTime: TimeInterval = 100
+        var scheduledRetry: (() -> Void)?
+        var cancelledRetries = 0
+        var retries = 0
+        let retryScheduler = UpdateRetryScheduler(clock: { retryTime }, schedule: { delay, action in
+            scheduledRetry = action
+            return { cancelledRetries += 1 }
+        })
+        retryScheduler.retry(after: 10) { retries += 1 }
+        retryTime = 102
+        try check(!retryScheduler.isReady, "readiness becoming healthy within backoff does not retry early")
+        retryTime = 110
+        scheduledRetry?()
+        try check(retries == 1 && retryScheduler.isReady, "stable readiness still retries at backoff expiry")
+        scheduledRetry?()
+        try check(retries == 1, "retry timer callback cannot run twice")
+        retryScheduler.retry(after: 10) { retries += 1 }
+        retryScheduler.cancel()
+        scheduledRetry?()
+        try check(retries == 1 && cancelledRetries == 1, "cancelled update cannot resurrect a queued retry")
 
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("build/test-runtime-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: output) }
@@ -92,7 +168,24 @@ final class FakeBrightness: BrightnessControlling {
         try coordinator.guardianWillTerminate()
         try check(!FileManager.default.fileExists(atPath: store.noticeURL.path), "inactive guardian shutdown creates no false warning")
         try check(!FileManager.default.fileExists(atPath: store.desiredURL.path), "inactive guardian shutdown does not mutate system request")
+        try store.markUpdateRelaunch()
+        try check(try store.consumeUpdateRelaunch(), "durable update relaunch marker is consumed")
+        try check(try !store.consumeUpdateRelaunch(), "update marker suppresses only one launch")
+        try Data("interrupted marker".utf8).write(to: store.updateRelaunchURL)
+        try check(try store.consumeUpdateRelaunch(), "corrupt update marker still fails closed on autostart")
+        try store.notePotentialUpdate(fromBuild: "4")
+        try check(try !store.consumeUpdateRelaunch(currentBuild: "4"), "an offered but uninstalled update preserves ordinary login preference")
+        try check(FileManager.default.fileExists(atPath: store.updateRelaunchURL.path), "offered update evidence survives until actual version changes")
+        try check(try store.consumeUpdateRelaunch(currentBuild: "5"), "actual replacement suppresses automatic activation")
+        try check(!FileManager.default.fileExists(atPath: store.updateRelaunchURL.path), "applied update evidence is consumed once")
+        try store.markUpdateRelaunch()
+        try store.notePotentialUpdate(fromBuild: "4")
+        try check(try store.consumeUpdateRelaunch(currentBuild: "4"), "later offer cannot weaken committed relaunch intent")
+        try Data("interrupted marker".utf8).write(to: store.updateRelaunchURL)
+        try store.notePotentialUpdate(fromBuild: "4")
+        try check(try store.consumeUpdateRelaunch(currentBuild: "4"), "later offer cannot replace unreadable safety evidence")
         let first = try coordinator.begin(mode: .agents, pid: 100, uptime: 100)
+        try rejects("active persisted session cannot prepare update marker") { try store.markUpdateRelaunch() }
         var clockObservedWhileLocked = false
         func recoveryClock() -> TimeInterval {
             let fd = open(store.runtime.appendingPathComponent("session.lock").path, O_RDWR)
@@ -141,6 +234,7 @@ final class FakeBrightness: BrightnessControlling {
         try check(FileManager.default.fileExists(atPath: store.brightnessURL.path), "failed restore keeps journal")
         try check(try String(contentsOf: store.desiredURL, encoding: .utf8) == "0", "failure still re-enables normal sleep")
         try check(try store.read(SessionLease.self, at: store.sessionURL) == nil, "failure invalidates session")
+        try rejects("pending brightness recovery prevents update preparation after session ended") { try store.markUpdateRelaunch() }
         fake.failWrite = false
         try coordinator.recoverIfNeeded(now: 300, processAlive: { _ in true }, safety: safe)
         try check(fake.value == 0.6, "orphan journal retry restores brightness")
@@ -162,11 +256,17 @@ final class FakeBrightness: BrightnessControlling {
         try store.write(legacyNotice, to: store.noticeURL)
         try store.acknowledge(legacyNotice)
         try check(try store.read(RecoveryNotice.self, at: store.noticeURL) == nil, "acknowledged notice stays removed")
+        try check(store.protectiveStopPending, "dismissing an incident does not authorize autostart")
+        try rejects("a pending autostart evaluated before recovery cannot bypass a newly written latch") {
+            _ = try coordinator.begin(mode: .agents, allowAfterProtectiveStop: false)
+        }
+        try check(store.protectiveStopPending, "rejected autostart preserves protective state")
         try store.write(batteryNotice, to: store.noticeURL)
         try store.acknowledge(legacyNotice)
         try check(try store.read(RecoveryNotice.self, at: store.noticeURL) == batteryNotice, "old acknowledgement cannot erase newer incident")
 
         let third = try coordinator.begin(mode: .agents, pid: 102, uptime: 400)
+        try check(!store.protectiveStopPending, "a new requested session clears the protective autostart latch")
         try coordinator.dim(id: third.id)
         try coordinator.recoverIfNeeded(now: 431, processAlive: { _ in true }, safety: safe)
         try check(try store.read(SessionLease.self, at: store.sessionURL) == nil, "hung app recovered")
@@ -196,6 +296,9 @@ final class FakeBrightness: BrightnessControlling {
         let diskCycle = GuardianCycle(coordinator: diskCoordinator)
         try diskCycle.tick(safety: safe, processAlive: { _ in true }, uptime: { 100 }, pid: 123)
         diskFull = true
+        try rejects("update admission fails before extraction when its durable intent cannot be saved") {
+            try diskStore.notePotentialUpdate(fromBuild: "4")
+        }
         try rejects("disk-full heartbeat cannot pretend to succeed") {
             try diskCycle.tick(safety: safe, processAlive: { _ in true }, uptime: { 109 }, pid: 123)
         }
@@ -205,6 +308,33 @@ final class FakeBrightness: BrightnessControlling {
         diskFull = false
         try diskCycle.tick(safety: safe, processAlive: { _ in true }, uptime: { 110 }, pid: 123)
         try check(GuardianHealth.evaluate(try diskStore.read(GuardianPulse.self, at: diskStore.guardianURL), now: 111, processAlive: { _ in true }).ready, "monitor recovers when disk is writable again")
+        var blockWriteFails = false
+        let blockedStore = RuntimeStore(base: output.appendingPathComponent("protective-write"), writeData: { data, url in
+            if blockWriteFails && url.lastPathComponent == "autostart-blocked.json" {
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC))
+            }
+            try data.write(to: url, options: .atomic)
+        })
+        let blockedCoordinator = SessionCoordinator(store: blockedStore, brightness: FakeBrightness())
+        let blockedLease = try blockedCoordinator.begin(mode: .agents, pid: 100, uptime: 100)
+        blockWriteFails = true
+        try rejects("disk-full protective latch preserves evidence for recovery retry") {
+            try blockedCoordinator.end(id: blockedLease.id, reason: "safety.thermal")
+        }
+        try check(try blockedStore.read(SessionLease.self, at: blockedStore.sessionURL)?.id == blockedLease.id,
+            "lease is retained until protective stop is durable")
+        try check(!FileManager.default.fileExists(atPath: blockedStore.heartbeatURL.path), "failed protective persistence still invalidates root heartbeat")
+        try check(try String(contentsOf: blockedStore.desiredURL, encoding: .utf8) == "0", "failed protective persistence still requests normal sleep")
+        try rejects("deferred autostart cannot pass the retained lease") {
+            _ = try blockedCoordinator.begin(mode: .agents, allowAfterProtectiveStop: false)
+        }
+        blockWriteFails = false
+        try blockedCoordinator.recoverIfNeeded(now: 132, processAlive: { _ in true }, safety: safe)
+        try check(blockedStore.protectiveStopPending, "recovery retry persists the protection latch before clearing lease")
+        try check(try blockedStore.read(SessionLease.self, at: blockedStore.sessionURL) == nil, "recovery retry completes after storage recovers")
+        try rejects("newly completed recovery still forbids pending autostart") {
+            _ = try blockedCoordinator.begin(mode: .agents, allowAfterProtectiveStop: false)
+        }
         print("PASS: \(count) runtime and safety assertions")
     }
 }

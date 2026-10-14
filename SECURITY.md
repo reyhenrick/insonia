@@ -16,4 +16,16 @@ The app must preserve manual locking and system authentication. It must not unlo
 
 The current downloadable build is signed ad hoc, not with Apple Developer ID, and is not notarized. Download it from the [repository's Releases page](https://github.com/reyhenrick/insonia/releases). Checksums detect changed download bytes when compared with the published value; they do not replace publisher authentication or notarization.
 
-Insonia does not collect analytics or send background network requests. Recovery records stay on the Mac and contain power and session events. Review any diagnostic material before sharing it.
+## Update integrity
+
+Starting with version 1.3.0, Insonia uses Sparkle 2.10 to check GitHub Releases and verify the update feed and archives with Ed25519 signatures before installation. The public key is embedded in the app. The corresponding private key stays in the maintainer's local macOS Keychain under `com.henrick.insonia.sparkle`; it is not available to CI. Automated workflows validate code and packages without publishing releases.
+
+The stable feed is `https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml`. Each entry references a version-specific archive URL and includes the archive's signature and length. Released archives are immutable: a correction requires a new version. Publication uploads and verifies the archives before making their signed feed available. These signatures authenticate updates against the key trusted by the installed app. They do not provide Apple Developer ID signing or notarization for the first manual installation.
+
+Automatic checks are enabled by default. Automatic downloading and installation are off by default and can be enabled in the app. Installation waits for Keep awake to be off, normal sleep and brightness to be restored, and protection operations to finish. Updating the app does not bypass the administrator approval required when the privileged helper needs an update.
+
+## Privacy
+
+Insonia needs no account and collects no analytics. Its power and recovery functions run locally. Update checks and downloads contact GitHub and its release-download infrastructure, which receive ordinary connection metadata such as the IP address. Sparkle system profiling is disabled. Links opened from the app or guide use the user's browser.
+
+Recovery records stay on the Mac and contain power and session events, not screenshots or window contents. Review any diagnostic material before sharing it.

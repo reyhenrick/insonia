@@ -3,6 +3,7 @@ import SwiftUI
 
 struct StatusIcon: View {
     @ObservedObject var core: PowerCore
+    @ObservedObject var updater: AppUpdater
 
     var body: some View {
         Image(systemName: core.active ? "bolt.fill" : "bolt.slash")
@@ -11,6 +12,9 @@ struct StatusIcon: View {
             .contentTransition(.symbolEffect(.replace))
             .symbolEffect(.bounce, value: core.active)
             .frame(width: 22, height: 22)
+            .overlay(alignment: .bottomTrailing) {
+                if updater.updateAvailable { Circle().fill(.blue).frame(width: 5, height: 5) }
+            }
     }
 }
 
@@ -18,6 +22,7 @@ struct PanelView: View {
     static let cornerRadius: CGFloat = 22
 
     @ObservedObject var core: PowerCore
+    @ObservedObject var updater: AppUpdater
     var onQuit: () -> Void
 
     @State private var now = Date()
@@ -33,6 +38,7 @@ struct PanelView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
             preferences
+                .disabled(core.preparingUpdate)
             if let notice = core.recoveryNotice {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(L10n.text("ui.previousInterruption"), systemImage: "clock.arrow.circlepath")
@@ -77,6 +83,16 @@ struct PanelView: View {
                     .font(.caption)
             }
             footer
+            if updater.waitingForIdle {
+                Text(L10n.text(core.updateReadiness.sessionActive ? "ui.updateWaiting" : "error.updateRecovery"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let error = updater.lastError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(14)
         .frame(width: 380)
@@ -109,7 +125,7 @@ struct PanelView: View {
         }
         .toggleStyle(.switch)
         .controlSize(.regular)
-        .disabled(core.installingHelper || core.repairingGuardian)
+        .disabled(core.installingHelper || core.repairingGuardian || core.preparingUpdate)
         .accessibilityLabel(L10n.text("ui.keepAwake"))
     }
 
@@ -154,18 +170,25 @@ struct PanelView: View {
 
     private var footer: some View {
         HStack {
-            Button(L10n.text("ui.help"), systemImage: "questionmark.circle", action: core.openHelp)
+            Button(L10n.text(updater.updateAvailable ? "ui.updateAvailable" : "ui.checkUpdates"),
+                   systemImage: "arrow.triangle.2.circlepath", action: updater.checkForUpdates)
                 .buttonStyle(.plain)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(updater.updateAvailable ? Color.accentColor : .secondary)
+                .disabled(!updater.canPerformUpdateAction || core.installingHelper || core.repairingGuardian || core.preparingUpdate)
+                .help(L10n.text("ui.updatesDescription"))
             Menu {
+                Text(L10n.text("ui.updateVersion", updater.currentVersion))
                 Text(L10n.text("ui.language", L10n.languageName))
+                Toggle(L10n.text("ui.autoUpdates"), isOn: Binding(get: { updater.automaticallyInstalls }, set: updater.setAutomaticallyInstalls))
+                    .disabled(core.preparingUpdate)
+                Divider()
                 Button(L10n.text("ui.community")) {
                     NSWorkspace.shared.open(URL(string: "https://github.com/reyhenrick/insonia")!)
                 }
                 Divider()
                 Button(L10n.text("ui.removeProtection"), action: core.removeProtection)
-                    .disabled(core.installingHelper || core.repairingGuardian)
+                    .disabled(core.installingHelper || core.repairingGuardian || core.preparingUpdate)
             } label: {
                 Image(systemName: "ellipsis.circle")
             }

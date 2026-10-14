@@ -1,4 +1,4 @@
-name: Publish release
+name: Verify release packages
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to release, such as v1.2.0
+        description: Existing version tag to verify, such as v1.3.0
         required: true
         type: string
 
@@ -21,14 +21,12 @@ jobs:
   release:
     runs-on: macos-26
     timeout-minutes: 30
-    permissions:
-      contents: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - name: Validate tag
         run: |
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Expected a version tag such as v1.2.0.' >&2; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Expected a version tag such as v1.3.0.' >&2; exit 1; }
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
@@ -37,55 +35,29 @@ jobs:
         run: |
           VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)
           [ "$RELEASE_TAG" = "v$VERSION" ] || { echo 'Tag does not match Info.plist.' >&2; exit 1; }
-      - name: Preserve an existing release
-        id: existing
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name' > "$RUNNER_TEMP/insonia-release-tags.txt"
-          if grep -Fxq -- "$RELEASE_TAG" "$RUNNER_TEMP/insonia-release-tags.txt"; then
-            echo 'exists=true' >> "$GITHUB_OUTPUT"
-            echo "Release $RELEASE_TAG already exists. Its downloads and notes were preserved."
-          else
-            echo 'exists=false' >> "$GITHUB_OUTPUT"
-          fi
       - name: Test
-        if: steps.existing.outputs.exists == 'false'
         run: ./test.sh
       - name: Build universal application
-        if: steps.existing.outputs.exists == 'false'
         run: ./build.sh
       - name: Package and verify downloads
-        if: steps.existing.outputs.exists == 'false'
         run: ./scripts/package-release.sh
-      - name: Prepare release notes
-        if: steps.existing.outputs.exists == 'false'
+      - name: Save unsigned update packages for inspection
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Insonia-macOS-${{ env.RELEASE_TAG }}-${{ github.sha }}
+          path: |
+            dist/Insonia-macOS.dmg
+            dist/Insonia-macOS.zip
+            dist/SHA256SUMS.txt
+            dist/release-metadata.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Explain the local publication step
         run: |
-          /usr/bin/python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          metadata = json.loads(Path('dist/release-metadata.json').read_text())
-          app = metadata['application']
-          notes = f"""Insonia {app['version']} keeps your Mac awake from the menu bar, with automatic language selection and independent recovery.
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          These packages passed the automated checks, but do not contain a signed update feed and are not published as a GitHub Release.
 
-          **Download:** choose `Insonia-macOS.dmg`, open it, and drag Insonia to Applications. A ZIP is also available. Both include an installation guide.
+          The maintainer builds and signs the final release locally with `./scripts/sign-release.sh`, then verifies it with `./scripts/verify-release.sh --require-feed dist` before publishing all five artifacts. The private update key stays in the macOS Keychain and is never exported to CI.
 
-          **Requires:** macOS {app['minimumMacOS']} or later. Universal application for Apple silicon and Intel.
-
-          **Signing:** {app['signing']['mode']}. **Apple notarization:** {metadata['notarization']['status']}. This workflow does not submit software for notarization. macOS may require approval in Privacy & Security on first launch.
-
-          `SHA256SUMS.txt` verifies the downloads. `release-metadata.json` records their signing status, architecture, version, and hashes.
-
-          Read the [installation and usage guide](https://github.com/{os.environ['GITHUB_REPOSITORY']}#install-and-start) before enabling lid-closed operation.
-          """
-          Path(os.environ['RUNNER_TEMP'], 'insonia-release-notes.md').write_text(notes)
-          PY
-      - name: Publish new release
-        if: steps.existing.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "Insonia ${RELEASE_TAG#v}" --notes-file "$RUNNER_TEMP/insonia-release-notes.md" \
-            dist/Insonia-macOS.dmg dist/Insonia-macOS.zip dist/SHA256SUMS.txt dist/release-metadata.json
+          See [the release instructions](https://github.com/reyhenrick/insonia/blob/main/CONTRIBUTING.md) for the complete workflow.
+          EOF

@@ -8,14 +8,12 @@ APP="$PWD/build/Insonia.app"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
 STAGING=$(mktemp -d "$PWD/build/.release.XXXXXX")
 trap 'rm -rf "$STAGING"' EXIT
-PAYLOAD="$STAGING/payload"
 DISK="$STAGING/disk"
 OUTPUT="$STAGING/output"
-mkdir -p "$PAYLOAD" "$DISK" "$OUTPUT"
-/usr/bin/ditto "$APP" "$PAYLOAD/Insonia.app"
-cp "$APP/Contents/Resources/Help/index.html" "$PAYLOAD/README-install.html"
-/usr/bin/ditto -c -k --sequesterRsrc "$PAYLOAD" "$OUTPUT/Insonia-macOS.zip"
-/usr/bin/ditto "$PAYLOAD" "$DISK"
+mkdir -p "$DISK" "$OUTPUT"
+/usr/bin/ditto -c -k --norsrc --keepParent "$APP" "$OUTPUT/Insonia-macOS.zip"
+/usr/bin/ditto "$APP" "$DISK/Insonia.app"
+cp "$APP/Contents/Resources/Help/index.html" "$DISK/README-install.html"
 ln -s /Applications "$DISK/Applications"
 cp "$APP/Contents/Resources/Insonia.icns" "$DISK/.VolumeIcon.icns"
 xcrun SetFile -a C "$DISK"
@@ -35,5 +33,9 @@ mkdir -p dist
 for artifact in Insonia-macOS.dmg Insonia-macOS.zip release-metadata.json SHA256SUMS.txt; do
     mv "$OUTPUT/$artifact" "dist/$artifact"
 done
+if [ -e dist/appcast.xml ]; then
+    rm dist/appcast.xml
+fi
 echo "Verified downloads: $PWD/dist"
+echo 'These local packages have no signed update feed. Run ./scripts/sign-release.sh before publishing.'
 echo 'These scripts do not submit builds for Apple notarization. See release-metadata.json for actual signing and ticket status.'

@@ -54,6 +54,10 @@
 "error.processTimeout" = "L’operazione ha impiegato troppo tempo. Riprova.";
 "error.persistJournal" = "Impossibile salvare il ripristino sul disco. La luminosità non è stata modificata.";
 "error.installLocation" = "Sposta Insonia in Applicazioni e aprilo da lì per installare la protezione.";
+"error.updateBusy" = "Attendi che la protezione di sistema completi l’operazione prima di aggiornare.";
+"error.updateRecovery" = "Attendi il ripristino della normale modalità di stop e della luminosità prima di aggiornare.";
+"error.updateUnavailable" = "Gli aggiornamenti non sono disponibili qui. Apri Insonia da Applicazioni.";
+"error.updateStart" = "Impossibile avviare il programma di aggiornamento: {0}.";
 "ui.authorizing" = "In attesa di autorizzazione…";
 "ui.installProtection" = "Installa protezione di sistema";
 "ui.updateProtection" = "Aggiorna protezione di sistema";
@@ -69,8 +73,14 @@
 "ui.quit" = "Esci";
 "ui.active" = "attivo";
 "ui.activeFor" = "attivo da {0}";
-"ui.help" = "Aiuto";
 "ui.community" = "Codice e contributi";
+"ui.checkUpdates" = "Cerca aggiornamenti…";
+"ui.updateAvailable" = "Aggiornamento disponibile";
+"ui.autoUpdates" = "Installa aggiornamenti automaticamente";
+"ui.updateWaiting" = "Aggiornamento pronto. Disattiva Mantieni attivo per installarlo.";
+"ui.updatePreparing" = "Preparazione dell’aggiornamento…";
+"ui.updateVersion" = "Versione {0}";
+"ui.updatesDescription" = "Le nuove versioni vengono cercate automaticamente.";
 "ui.language" = "Lingua di sistema: {0}";
 "ui.previousInterruption" = "Interruzione precedente";
 "ui.acknowledge" = "Chiudi";

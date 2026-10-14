@@ -27,7 +27,7 @@ jobs:
         run: ./build.sh
       - name: Package and verify downloads
         run: ./scripts/package-release.sh
-      - name: Save verified downloads
+      - name: Save unsigned update packages for inspection
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Insonia-macOS-${{ github.sha }}

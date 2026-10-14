@@ -126,18 +126,41 @@ enum MacState {
     static var helperReady: Bool {
         let version = try? String(contentsOfFile: "/Library/PrivilegedHelperTools/com.henrick.insonia/version", encoding: .utf8)
         guard version?.trimmingCharacters(in: .whitespacesAndNewlines) == String(RuntimeStore.helperVersion),
-              let receipt = try? String(contentsOfFile: "/var/run/insonia-helper-v3-status", encoding: .utf8) else { return false }
-        let fields = receipt.split(whereSeparator: { $0.isWhitespace })
-        guard fields.count == 4, fields[0] == "3", let stamp = TimeInterval(fields[1]) else { return false }
-        let age = Date().timeIntervalSince1970 - stamp
-        return age >= 0 && age <= 25
+              let receipt = helperReceipt(version: 3) else { return false }
+        return receipt.isRecent(now: Date().timeIntervalSince1970)
     }
 
     static func helperConfirmed(sessionID: String) -> Bool {
-        guard helperReady, sleepDisabled,
-              let receipt = try? String(contentsOfFile: "/var/run/insonia-helper-v3-status", encoding: .utf8) else { return false }
-        let fields = receipt.split(whereSeparator: { $0.isWhitespace })
-        return fields.count == 4 && fields[2] == "1" && fields[3] == sessionID
+        guard helperReady, sleepDisabled, let receipt = helperReceipt(version: 3) else { return false }
+        return receipt.sleepDisabled && receipt.sessionID == sessionID
+            && receipt.isRecent(now: Date().timeIntervalSince1970)
+    }
+
+    private static func helperReceipt(version: Int) -> HelperReceipt? {
+        let path = "/var/run/insonia-helper-v\(version)-status"
+        var info = stat()
+        guard lstat(path, &info) == 0, info.st_uid == 0,
+              info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), info.st_mode & 0o022 == 0,
+              let text = try? String(contentsOfFile: path, encoding: .utf8),
+              let receipt = HelperReceipt(text), receipt.version == version else { return nil }
+        return receipt
+    }
+
+    static func normalSleepConfirmed(after request: TimeInterval) -> Bool {
+        guard rootProperty("SleepDisabled") == false else { return false }
+        guard FileManager.default.fileExists(atPath: "/Library/LaunchDaemons/com.henrick.insonia.helper.plist") else {
+            return true // No Insonia root service can have an outstanding request.
+        }
+        let newVersion = try? String(contentsOfFile: "/Library/PrivilegedHelperTools/com.henrick.insonia/version", encoding: .utf8)
+        let version: Int
+        if newVersion?.trimmingCharacters(in: .whitespacesAndNewlines) == "3" { version = 3 }
+        else {
+            let legacy = try? String(contentsOfFile: "/usr/local/libexec/insonia-helper.version", encoding: .utf8)
+            guard legacy?.trimmingCharacters(in: .whitespacesAndNewlines) == "2" else { return false }
+            version = 2
+        }
+        guard let receipt = helperReceipt(version: version) else { return false }
+        return receipt.confirmsNormalSleep(after: request, now: Date().timeIntervalSince1970)
     }
 
     static func processExists(_ pid: Int32) -> Bool { pid > 1 && (kill(pid, 0) == 0 || errno == EPERM) }
@@ -244,13 +267,17 @@ enum GuardianManager {
         } catch { return GuardianHealth(state: .unreadable, age: nil, failure: InsoniaFailure.wrapping(error)) }
     }
 
-    static func uninstall() throws {
+    static func stopForUpdate() throws {
         let domain = "gui/\(getuid())/\(label)"
         if try LocalProcess.run("/bin/launchctl", ["print", domain]) == 0 {
             guard try LocalProcess.run("/bin/launchctl", ["bootout", domain]) == 0 else {
                 throw InsoniaFailure("error.guardianInstall")
             }
         }
+    }
+
+    static func uninstall() throws {
+        try stopForUpdate()
         if FileManager.default.fileExists(atPath: plistURL.path) { try FileManager.default.removeItem(at: plistURL) }
     }
 }
