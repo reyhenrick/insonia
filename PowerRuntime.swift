@@ -55,6 +55,12 @@ struct UpdateRelaunchIntent: Codable {
     let offeredFromBuild: String?
 }
 
+struct ProtectiveStopRevision: Equatable {
+    let notice: Data?
+    let autostartBlock: Data?
+    var pending: Bool { notice != nil || autostartBlock != nil }
+}
+
 enum GuardianHealthState: String {
     case ready, recovering, missing, unreadable, incompatible, future, stale, processExited
 }
@@ -162,6 +168,20 @@ final class RuntimeStore {
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: desiredURL.path)
     }
 
+    func protectiveStopRevision() throws -> ProtectiveStopRevision {
+        try locked { try protectiveStopRevisionLocked() }
+    }
+
+    fileprivate func protectiveStopRevisionLocked() throws -> ProtectiveStopRevision {
+        func bytes(at url: URL) throws -> Data? {
+            do { return try Data(contentsOf: url) }
+            catch let error as NSError where error.domain == NSCocoaErrorDomain
+                && error.code == NSFileReadNoSuchFileError { return nil }
+        }
+        return try ProtectiveStopRevision(notice: bytes(at: noticeURL),
+            autostartBlock: bytes(at: autostartBlockURL))
+    }
+
     func heartbeat(sessionID: String) throws {
         try writeData(Data((sessionID + "\n").utf8), heartbeatURL)
     }
@@ -243,9 +263,10 @@ final class SessionCoordinator {
     }
 
     func begin(mode: LidMode, pid: Int32 = getpid(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime,
-               allowAfterProtectiveStop: Bool = true) throws -> SessionLease {
+               expectedProtectiveRevision: ProtectiveStopRevision? = nil) throws -> SessionLease {
         try store.locked {
-            guard allowAfterProtectiveStop || !store.protectiveStopPending else {
+            let currentRevision = try store.protectiveStopRevisionLocked()
+            guard expectedProtectiveRevision.map({ $0 == currentRevision }) ?? !currentRevision.pending else {
                 throw InsoniaFailure("error.sessionRecovered")
             }
             guard try store.read(SessionLease.self, at: store.sessionURL) == nil else {

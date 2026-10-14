@@ -6,11 +6,13 @@ Please use [GitHub's private vulnerability report](https://github.com/reyhenrick
 
 Include the affected version, macOS version, relevant configuration, reproduction steps, expected impact, and a minimal proof of concept when useful. Remove credentials and personal data. There is no guaranteed response time.
 
-Security fixes target the latest release. Users of an older version may need to update both the app and system protection.
+Security fixes target the latest release. When the privileged helper needs an update, Insonia requests administrator approval during the next explicit Keep awake activation.
 
 ## Relevant boundaries
 
 Insonia has an unprivileged menu bar app, a user recovery monitor, and a privileged helper that changes the system sleep setting. The installed helper resides in `/Library/PrivilegedHelperTools/com.henrick.insonia`. Changes crossing that boundary must authenticate session ownership, reject invalid state, and recover to normal sleep when a valid active session expires.
+
+The recovery services are required for an active session. Insonia prepares them as part of Keep awake activation and uses the native macOS authorization prompt when elevated installation is needed. Cancelling authorization leaves Keep awake off; retrying requires another explicit user action. Automatic startup and background recovery must not create an authorization loop. Removing the app requires the [complete removal procedure](CONTRIBUTING.md#remove-a-local-installation), including the privileged helper and the user's recovery monitor.
 
 The app must preserve manual locking and system authentication. It must not unlock a session, enter passwords, bypass FileVault, or grant another app Screen Recording or Accessibility access.
 
@@ -24,7 +26,7 @@ Insonia uses Sparkle 2.10 to check GitHub Releases and verify the update feed an
 
 The stable feed is `https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml`. Each entry references a version-specific archive URL and includes the archive's signature and length. Released archives are immutable: a correction requires a new version. Publication uploads and verifies the archives before making their signed feed available. These signatures authenticate updates against the key trusted by the installed app. They do not provide Apple Developer ID signing or notarization for the first manual installation.
 
-Automatic checks are enabled by default. Automatic downloading and installation are off by default and can be enabled in the app. Installation waits for Keep awake to be off, normal sleep and brightness to be restored, and protection operations to finish. Updating the app does not bypass the administrator approval required when the privileged helper needs an update.
+Automatic checks are enabled by default. Automatic downloading and installation are off by default and can be enabled in the app. Installation waits for Keep awake to be off, normal sleep and brightness to be restored, and setup to finish. Updating the app does not bypass the administrator approval required when the privileged helper needs an update.
 
 ## Privacy
 

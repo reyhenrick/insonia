@@ -19,9 +19,10 @@ import Darwin
         do {
             guard MacState.helperReady, GuardianManager.healthy(store: store),
                   MacState.lidClosed == false, MacState.sessionAvailable else {
-                throw InsoniaFailure("Live probe requires installed protection, lid open, and an unlocked session.")
+                throw InsoniaFailure("Live probe requires ready services, lid open, and an unlocked session.")
             }
-            let lease = try coordinator.begin(mode: .agents)
+            let revision = try store.protectiveStopRevision()
+            let lease = try coordinator.begin(mode: .agents, expectedProtectiveRevision: revision)
             id = lease.id
             let deadline = ProcessInfo.processInfo.systemUptime + 15
             while !MacState.helperConfirmed(sessionID: lease.id) {

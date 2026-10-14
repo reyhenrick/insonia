@@ -278,8 +278,4 @@ enum GuardianManager {
         }
     }
 
-    static func uninstall() throws {
-        try stopForUpdate()
-        if FileManager.default.fileExists(atPath: plistURL.path) { try FileManager.default.removeItem(at: plistURL) }
-    }
 }

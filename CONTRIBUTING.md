@@ -41,7 +41,9 @@ Inspect both sides of a contract before changing it. A successful power command 
 
 Do not remove manual-lock handling, battery and thermal cutoffs, session identity checks, or recovery records to make a test pass. Preserve the saved brightness until restoration is verified. Privileged code must not execute scripts from locations writable by an unprivileged user.
 
-Update installation must wait until Keep awake is off, normal sleep and brightness recovery are confirmed, and protection operations have finished. The first launch after an update suppresses Start active once while preserving the preference. Automatic update checks are enabled by default. Automatic downloading and installation are a separate preference, off by default. Keep these defaults, the panel labels, and the documentation consistent. System profiling must remain disabled.
+Recovery is intrinsic to Keep awake. A user request to activate it starts any required setup, including the native macOS administrator prompt for the privileged helper. Activation must wait for setup and recovery readiness. Cancelling authorization leaves Keep awake off and clears the pending activation; only another explicit activation request retries. Background checks and automatic startup must not repeatedly open authorization prompts.
+
+Update installation must wait until Keep awake is off, normal sleep and brightness recovery are confirmed, and setup has finished. The first launch after an update suppresses Start active once while preserving the preference. Automatic update checks are enabled by default. Automatic downloading and installation are a separate preference, off by default. Keep these defaults, the panel labels, and the documentation consistent. System profiling must remain disabled.
 
 ## Add or improve a translation
 
@@ -62,7 +64,36 @@ For UI changes, inspect the actual panel with long translations and both system 
 
 A universal binary is not proof of hardware compatibility. For changes to closed-lid agent access, record the Mac model, chip, macOS version, power source, and what you tested. Physical verification means performing a real screenshot, click, and typing action while the lid is closed, then checking brightness restoration after reopening. Do not describe a terminal heartbeat or successful build as a physical display test.
 
-Installing or changing the privileged helper affects your Mac's sleep behavior and asks for administrator approval. Use the app's installation and removal controls for a live test; keep a path back to normal sleep and do not test with the Mac inside a bag.
+Installing or changing the privileged helper affects your Mac's sleep behavior and asks for administrator approval. For a live setup test, turn on Keep awake and follow the native macOS prompt. Exercise approval and cancellation, and verify that cancellation requires another explicit activation request. Keep a path back to normal sleep and do not test with the Mac inside a bag.
+
+## Remove a local installation
+
+Use this procedure from the same macOS account that runs Insonia. It removes the app's background services before you delete the app.
+
+1. Turn off **Keep awake** and **Open at login**. Wait for normal sleep and the original display brightness to be restored, then choose **Quit**. If recovery is still pending, leave Insonia running until it finishes before continuing.
+2. Open Terminal as your regular user and run the bundled uninstaller. Enter the administrator password only at the Terminal prompt:
+
+   ```sh
+   sudo /bin/bash "/Applications/Insonia.app/Contents/Resources/helper-install/install-helper.sh" --user "$(id -un)" --uninstall
+   ```
+
+   If you installed the app in your personal Applications folder, replace `/Applications/Insonia.app` with `$HOME/Applications/Insonia.app`. If your account cannot use `sudo`, ask a Mac administrator to run this command with `--user` set to your short account name, then continue the remaining steps in your own account. Continue only after the command succeeds. It verifies normal system sleep before removing the privileged helper and its launch daemon; if that verification fails, it preserves the helper files.
+3. Stop the recovery monitor for your account and remove its launch agent:
+
+   ```sh
+   insonia_guardian_target="gui/$(id -u)/com.henrick.insonia.guardian"
+   if /bin/launchctl print "$insonia_guardian_target" >/dev/null 2>&1; then
+       /bin/launchctl bootout "$insonia_guardian_target" &&
+           /bin/rm -f "$HOME/Library/LaunchAgents/com.henrick.insonia.guardian.plist"
+   else
+       /bin/rm -f "$HOME/Library/LaunchAgents/com.henrick.insonia.guardian.plist"
+   fi
+   ```
+
+   A stopped monitor may already be absent from `launchctl`; its plist still needs removal so it cannot start at login. If stopping the monitor reports an error, resolve it before deleting the app.
+4. Move **Insonia.app** from Applications to the Trash.
+
+Local preferences and recovery records are retained. After the services are stopped and recovery has completed, you can remove the records through Finder at `~/Library/Application Support/Insonia` if you no longer need them.
 
 ## Sign and publish an update
 

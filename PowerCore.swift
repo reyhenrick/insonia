@@ -20,6 +20,7 @@ final class PowerCore: ObservableObject {
     @Published private(set) var recoveryNotice: RecoveryNotice?
     @Published private(set) var preparingUpdate = false
     @Published private(set) var updateReadiness = UpdateReadiness()
+    @Published private var activation = ActivationGate()
 
     private let preferences = UserDefaults.standard
     private let runtime = RuntimeStore()
@@ -36,7 +37,6 @@ final class PowerCore: ObservableObject {
     private var screenLocked = false
     private var displayPaused = false
     private var started = false
-    private var pendingAutostart = false
     private var stopRequestedAt: TimeInterval?
     private var helperProcess: Process?
     private var nextGuardianRetry: TimeInterval = 0
@@ -55,9 +55,8 @@ final class PowerCore: ObservableObject {
         return parent == "/Applications" || parent == NSHomeDirectory() + "/Applications"
     }
 
-    var protectionInstalled: Bool {
-        FileManager.default.fileExists(atPath: "/Library/LaunchDaemons/com.henrick.insonia.helper.plist")
-    }
+    var activationRequested: Bool { active || applying || activation.pending != nil }
+    var preparingActivation: Bool { activation.pending != nil }
 
     func start(resumeActive: Bool = false) {
         guard !started else { return }
@@ -76,33 +75,79 @@ final class PowerCore: ObservableObject {
         catch { lastError = InsoniaFailure.wrapping(error).message }
         repairGuardian()
         observeSession()
-        pendingAutostart = shouldAutostart
         timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(timer!, forMode: .common)
+        if shouldAutostart { requestActivation(origin: .login) }
         tick()
     }
 
-    func toggle() { setActive(!(active || applying)) }
+    func toggle() { setActive(!activationRequested) }
 
     func setActive(_ on: Bool) {
         if !on { stop(); return }
-        startSession(manual: true)
+        requestActivation(origin: .manual)
     }
 
-    private func startSession(manual: Bool) {
-        guard lease == nil, !installingHelper, !repairingGuardian, !preparingUpdate else { return }
+    private func requestActivation(origin: ActivationOrigin) {
+        guard started, lease == nil, activation.pending == nil, !installingHelper, !preparingUpdate else { return }
         guard installedInApplications else { lastError = L10n.text("error.installLocation"); return }
         lastError = nil
-        helperNeeded = !MacState.helperReady
-        guard !helperNeeded else {
-            lastError = L10n.text("error.helperRequired")
-            return
+        do {
+            activation.request(origin: origin, protectiveRevision: try runtime.protectiveStopRevision(),
+                now: ProcessInfo.processInfo.systemUptime)
+            tick()
+        } catch { lastError = InsoniaFailure.wrapping(error).message }
+    }
+
+    private func advanceActivation(health: GuardianHealth, now: TimeInterval) {
+        guard activation.pending != nil, !preparingUpdate else { return }
+        let restorationFailure: InsoniaFailure?
+        if FileManager.default.fileExists(atPath: runtime.sessionURL.path) {
+            restorationFailure = "error.previousSession"
+        } else if FileManager.default.fileExists(atPath: runtime.brightnessURL.path) {
+            restorationFailure = "error.restoreBrightness"
+        } else { restorationFailure = nil }
+        do {
+            let readiness = ActivationReadiness(protectiveRevision: try runtime.protectiveStopRevision(),
+                helperReady: !helperNeeded, guardianReady: health.ready,
+                authorizationInProgress: installingHelper, guardianRepairInProgress: repairingGuardian,
+                recoveryPending: restorationFailure != nil, normalSleepPending: stopRequestedAt != nil,
+                safetyFailure: MacState.safety.stopReason,
+                preparationFailure: restorationFailure ?? health.failure
+                    ?? (stopRequestedAt == nil ? nil : InsoniaFailure("error.sleepUnconfirmed")))
+            switch activation.advance(readiness: readiness, now: now) {
+            case .inactive: break
+            case .waiting:
+                status = L10n.text(installingHelper ? "ui.authorizing"
+                    : (restorationFailure == nil ? "ui.preparing" : "status.recovering"))
+                if let failure = health.failure { lastError = failure.message }
+            case .authorize(let request): authorizeHelper(for: request.id)
+            case .begin(let request): startSession(request: request)
+            case .failed(let failure):
+                status = L10n.text("status.normal")
+                lastError = failure.message
+            }
+        } catch {
+            activation.cancel()
+            status = L10n.text("status.normal")
+            lastError = InsoniaFailure.wrapping(error).message
+        }
+    }
+
+    private func startSession(request: ActivationRequest) {
+        guard activation.pending?.id == request.id, lease == nil,
+              !installingHelper, !repairingGuardian, !preparingUpdate else { return }
+        defer {
+            activation.complete(request.id)
+            if lease == nil { status = L10n.text("status.normal") }
+        }
+        guard installedInApplications else { lastError = L10n.text("error.installLocation"); return }
+        guard MacState.helperReady else {
+            helperNeeded = true
+            lastError = L10n.text("error.helperRequired"); return
         }
         let health = GuardianManager.health(store: runtime)
-        guard health.ready else {
-            lastError = health.failure?.message ?? L10n.text("error.guardianStarting")
-            return
-        }
+        guard health.ready else { lastError = health.failure?.message ?? L10n.text("error.guardianStarting"); return }
         if let reason = MacState.safety.stopReason { lastError = reason.message; return }
         guard MacState.lidClosed != nil else { lastError = L10n.text("error.lidUnknown"); return }
         if agentsEnabled {
@@ -116,8 +161,9 @@ final class PowerCore: ObservableObject {
         do {
             sessionActivity.start()
             lease = try coordinator.begin(mode: agentsEnabled ? .agents : .background,
-                allowAfterProtectiveStop: manual)
+                expectedProtectiveRevision: request.origin == .manual ? request.protectiveRevision : nil)
             recoveryNotice = nil
+            lastError = nil
             applying = true
             applyingSince = ProcessInfo.processInfo.systemUptime
             lastRenewal = -.infinity
@@ -163,17 +209,7 @@ final class PowerCore: ObservableObject {
             if let installError = guardianInstallError, lastError == installError { lastError = nil }
             guardianInstallError = nil
         }
-        if pendingAutostart && runtime.protectiveStopPending { pendingAutostart = false }
-        if pendingAutostart && health.ready && !repairingGuardian && !installingHelper {
-            if FileManager.default.fileExists(atPath: runtime.sessionURL.path)
-                || FileManager.default.fileExists(atPath: runtime.brightnessURL.path) {
-                status = L10n.text("status.recovering")
-            } else {
-                pendingAutostart = false
-                startSession(manual: false)
-            }
-        }
-        guard let lease else {
+        if lease == nil {
             if let requested = stopRequestedAt {
                 if MacState.normalSleepConfirmed(after: normalSleepVerificationSince) {
                     stopRequestedAt = nil
@@ -183,6 +219,9 @@ final class PowerCore: ObservableObject {
                     status = L10n.text("status.restoreFailed")
                 }
             }
+            advanceActivation(health: health, now: now)
+        }
+        guard let lease else {
             let notice = try? runtime.read(RecoveryNotice.self, at: runtime.noticeURL)
             if recoveryNotice != notice { recoveryNotice = notice }
             if !health.responsive && !repairingGuardian && !installingHelper && now >= nextGuardianRetry {
@@ -272,7 +311,7 @@ final class PowerCore: ObservableObject {
     }
 
     private func stop(reason: InsoniaFailure? = nil) {
-        pendingAutostart = false
+        activation.cancel()
         var stopFailure: String?
         if let lease {
             do { try coordinator.end(id: lease.id, reason: reason) }
@@ -294,6 +333,7 @@ final class PowerCore: ObservableObject {
     }
 
     private func abandonRecoveredSession(notice: RecoveryNotice) {
+        activation.cancel()
         lease = nil
         displayActivity.release()
         sessionActivity.stop()
@@ -318,6 +358,7 @@ final class PowerCore: ObservableObject {
         guard installedInApplications else { lastError = L10n.text("error.installLocation"); return }
         let restart = !GuardianManager.health(store: runtime).responsive
         repairingGuardian = true
+        let pendingID = activation.pending?.id
         nextGuardianRetry = ProcessInfo.processInfo.systemUptime + guardianRetryDelay
         guardianRetryDelay = min(60, guardianRetryDelay * 2)
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -331,12 +372,13 @@ final class PowerCore: ObservableObject {
                     self.guardianInstallError = failure.message
                     self.lastError = failure.message
                 }
+                if self.activation.pending?.id == pendingID { self.tick() }
             }
         }
     }
 
     func captureUpdateReadiness() -> UpdateReadiness {
-        UpdateReadiness(sessionActive: active || applying || lease != nil || pendingAutostart,
+        UpdateReadiness(sessionActive: activationRequested || lease != nil,
             protectionBusy: installingHelper || repairingGuardian,
             stopPending: stopRequestedAt != nil,
             persistedSession: FileManager.default.fileExists(atPath: runtime.sessionURL.path),
@@ -357,7 +399,7 @@ final class PowerCore: ObservableObject {
         // Set the latch synchronously on the UI thread before any blocking work.
         // All activation, helper and guardian entry points respect it.
         preparingUpdate = true
-        pendingAutostart = false
+        activation.cancel()
         do {
             try runtime.markUpdateRelaunch()
             try GuardianManager.stopForUpdate()
@@ -374,7 +416,7 @@ final class PowerCore: ObservableObject {
         // Sparkle's external installer may still own a staged update after an
         // error. Keep the durable marker until the next launch consumes it.
         preparingUpdate = false
-        pendingAutostart = false
+        activation.cancel()
         status = L10n.text("status.normal")
         repairGuardian()
     }
@@ -461,58 +503,48 @@ final class PowerCore: ObservableObject {
         openAtLogin = FileManager.default.fileExists(atPath: Self.agentPath)
     }
 
-    func installHelper() {
-        authorizeHelper(uninstall: false)
-    }
-
-    func removeProtection() {
-        guard !installingHelper, !repairingGuardian, !preparingUpdate else { return }
-        let alert = NSAlert()
-        alert.messageText = L10n.text("ui.removeTitle")
-        alert.informativeText = L10n.text("ui.removeDescription")
-        alert.addButton(withTitle: L10n.text("ui.cancel"))
-        alert.addButton(withTitle: L10n.text("ui.remove"))
-        guard alert.runModal() == .alertSecondButtonReturn else { return }
-        authorizeHelper(uninstall: true)
-    }
-
-    private func authorizeHelper(uninstall: Bool) {
-        guard !installingHelper, !repairingGuardian, !preparingUpdate else { return }
-        guard installedInApplications else { lastError = L10n.text("error.installLocation"); return }
-        stop()
-        if FileManager.default.fileExists(atPath: runtime.brightnessURL.path) {
-            lastError = L10n.text("error.restoreBrightness")
+    private func authorizeHelper(for requestID: UUID) {
+        guard activation.pending?.id == requestID, lease == nil,
+              !installingHelper, !repairingGuardian, !preparingUpdate else { return }
+        guard installedInApplications else {
+            activation.cancel()
+            lastError = L10n.text("error.installLocation")
             return
         }
         let script = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/helper-install/install-helper.sh").path
         func shellQuote(_ text: String) -> String { "'" + text.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-        let command = "/bin/bash \(shellQuote(script)) --user \(shellQuote(NSUserName()))" + (uninstall ? " --uninstall" : "")
+        let command = "/bin/bash \(shellQuote(script)) --user \(shellQuote(NSUserName()))"
         let appleString = command.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = ["-e", "do shell script \"\(appleString)\" with administrator privileges"]
         process.standardOutput = FileHandle.nullDevice; process.standardError = FileHandle.nullDevice
         installingHelper = true; lastError = nil; helperProcess = process
+        status = L10n.text("ui.authorizing")
         process.terminationHandler = { [weak self] process in
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, self.helperProcess === process else { return }
                 self.installingHelper = false; self.helperProcess = nil
                 self.helperNeeded = !MacState.helperReady
-                if uninstall && process.terminationStatus == 0 && !MacState.sleepDisabled {
-                    do {
-                        try GuardianManager.uninstall()
-                        try self.configureOpenAtLogin(false)
-                        self.setActivateOnLaunch(false)
-                        self.status = L10n.text("ui.removed")
-                        NSApp.terminate(nil)
-                    } catch { self.lastError = InsoniaFailure.wrapping(error).message }
-                } else {
-                    self.lastError = process.terminationStatus == 0 && !self.helperNeeded
-                        ? nil : L10n.text("error.authorization")
+                let succeeded = process.terminationStatus == 0
+                if self.activation.authorizationFinished(for: requestID, succeeded: succeeded,
+                    now: ProcessInfo.processInfo.systemUptime) {
+                    if !succeeded {
+                        self.lastError = L10n.text("error.authorization")
+                        self.status = L10n.text("status.normal")
+                    }
+                    self.tick()
                 }
+                self.updateReadiness = self.captureUpdateReadiness()
             }
         }
         do { try process.run() }
-        catch { installingHelper = false; helperProcess = nil; lastError = InsoniaFailure.wrapping(error).message }
+        catch {
+            installingHelper = false; helperProcess = nil
+            activation.authorizationFinished(for: requestID, succeeded: false,
+                now: ProcessInfo.processInfo.systemUptime)
+            status = L10n.text("status.normal")
+            lastError = InsoniaFailure.wrapping(error).message
+        }
     }
 }

@@ -45,8 +45,27 @@ struct LocalizationCatalog {
         return result
     }
 
+    // Persisted messages from before keyed notices must survive copy changes.
+    private static let legacyPortugueseMessages: [String: String] = [
+        "Atualize a proteção do sistema para ativar o Insonia.": "error.helperRequired",
+        "O monitor de recuperação está iniciando. Tente novamente em instantes.": "error.guardianStarting",
+        "O sistema ainda não confirmou o repouso normal. Verifique a proteção do sistema.": "error.sleepUnconfirmed",
+        "A sessão foi encerrada pelo monitor de recuperação.": "error.sessionRecovered",
+        "A proteção do sistema deixou de responder. Atualize o helper antes de reativar.": "error.helperUnavailable",
+        "O monitor de recuperação não está respondendo. O Insonia foi desativado.": "error.guardianUnavailable",
+        "O helper não confirmou a ativação. Atualize a proteção do sistema.": "error.helperUnconfirmed",
+        "A proteção não foi atualizada. O macOS precisa da autorização de um administrador.": "error.authorization",
+        "O monitor de recuperação foi encerrado. O repouso normal foi solicitado.": "recovery.guardianExit",
+        "O monitor de recuperação não está instalado neste aplicativo.": "error.guardianMissing",
+        "Não foi possível iniciar o monitor de recuperação.": "error.guardianInstall",
+        "Não foi possível salvar a proteção. Libere espaço no disco e tente novamente.": "error.storage",
+        "Mova o Insonia para Aplicativos e abra-o de lá para instalar a proteção.": "error.installLocation",
+        "Aguarde a proteção do sistema concluir a operação antes de atualizar.": "error.updateBusy",
+    ]
+
     func legacyMessage(_ source: String) -> InsoniaFailure {
         let normalized = source.replacingOccurrences(of: "Insônia", with: "Insonia")
+        if let key = Self.legacyPortugueseMessages[normalized] { return InsoniaFailure(key) }
         for (key, value) in tables["pt"] ?? [:] where value == normalized {
             return InsoniaFailure(key)
         }

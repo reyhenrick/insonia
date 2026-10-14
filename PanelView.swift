@@ -67,21 +67,6 @@ struct PanelView: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if core.helperNeeded {
-                Button(core.installingHelper ? L10n.text("ui.authorizing") : L10n.text(core.protectionInstalled ? "ui.updateProtection" : "ui.installProtection"),
-                       action: core.installHelper)
-                    .disabled(core.installingHelper || core.repairingGuardian)
-                    .controlSize(.regular)
-                Text(L10n.text("ui.authorizationHelp"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if !core.guardianReady && !core.active && !core.applying {
-                Button(core.repairingGuardian ? L10n.text("ui.repairing") : L10n.text("ui.repair"), action: core.repairGuardian)
-                    .disabled(core.repairingGuardian || core.installingHelper)
-                    .font(.caption)
-            }
             footer
             if updater.waitingForIdle {
                 Text(L10n.text(core.updateReadiness.sessionActive ? "ui.updateWaiting" : "error.updateRecovery"))
@@ -105,19 +90,15 @@ struct PanelView: View {
             Label("Insonia", systemImage: "bolt.fill")
                 .font(.headline)
             Spacer()
-            Image(systemName: core.guardianReady && !core.helperNeeded ? "checkmark.shield" : "shield.lefthalf.filled")
-                .foregroundStyle(core.guardianReady && !core.helperNeeded ? .green : .secondary)
-                .help(L10n.text(core.guardianReady && !core.helperNeeded ? "ui.protectionReady" : "ui.protectionAttention"))
-                .accessibilityLabel(L10n.text(core.guardianReady && !core.helperNeeded ? "ui.protectionReady" : "ui.protectionAttention"))
         }
     }
 
     private var mainControl: some View {
-        Toggle(isOn: Binding(get: { core.active || core.applying }, set: core.setActive)) {
+        Toggle(isOn: Binding(get: { core.activationRequested }, set: core.setActive)) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(L10n.text("ui.keepAwake"))
                     .font(.body.weight(.medium))
-                Text(core.applying ? L10n.text("ui.confirming") : (core.active ? elapsedLabel : L10n.text("ui.lidClosed")))
+                Text(core.preparingActivation ? L10n.text("ui.preparing") : (core.applying ? L10n.text("ui.confirming") : (core.active ? elapsedLabel : L10n.text("ui.lidClosed"))))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -125,7 +106,7 @@ struct PanelView: View {
         }
         .toggleStyle(.switch)
         .controlSize(.regular)
-        .disabled(core.installingHelper || core.repairingGuardian || core.preparingUpdate)
+        .disabled(core.installingHelper || core.preparingUpdate)
         .accessibilityLabel(L10n.text("ui.keepAwake"))
     }
 
@@ -186,15 +167,12 @@ struct PanelView: View {
                 Button(L10n.text("ui.community")) {
                     NSWorkspace.shared.open(URL(string: "https://github.com/reyhenrick/insonia")!)
                 }
-                Divider()
-                Button(L10n.text("ui.removeProtection"), action: core.removeProtection)
-                    .disabled(core.installingHelper || core.repairingGuardian || core.preparingUpdate)
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .accessibilityLabel(L10n.text("ui.community"))
+            .accessibilityLabel(L10n.text("ui.more"))
             Spacer()
             Button(L10n.text("ui.quit"), systemImage: "power", action: onQuit)
                 .buttonStyle(.plain)

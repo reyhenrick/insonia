@@ -30,6 +30,97 @@ enum LeasePolicy {
     }
 }
 
+enum ActivationOrigin: Equatable {
+    case manual, login
+}
+
+struct ActivationRequest: Equatable {
+    let id = UUID()
+    let origin: ActivationOrigin
+    let protectiveRevision: ProtectiveStopRevision
+    var authorizationAttempted = false
+    var readinessDeadline: TimeInterval
+}
+
+struct ActivationReadiness {
+    var protectiveRevision: ProtectiveStopRevision
+    var helperReady: Bool
+    var guardianReady: Bool
+    var authorizationInProgress = false
+    var guardianRepairInProgress = false
+    var recoveryPending = false
+    var normalSleepPending = false
+    var safetyFailure: InsoniaFailure? = nil
+    var preparationFailure: InsoniaFailure? = nil
+}
+
+enum ActivationStep: Equatable {
+    case inactive, waiting
+    case authorize(ActivationRequest)
+    case begin(ActivationRequest)
+    case failed(InsoniaFailure)
+}
+
+struct ActivationGate {
+    static let readinessTimeout: TimeInterval = 60
+    private(set) var pending: ActivationRequest?
+
+    @discardableResult
+    mutating func request(origin: ActivationOrigin, protectiveRevision: ProtectiveStopRevision,
+                          now: TimeInterval) -> Bool {
+        guard pending == nil else { return false }
+        pending = ActivationRequest(origin: origin, protectiveRevision: protectiveRevision,
+            readinessDeadline: now + Self.readinessTimeout)
+        return true
+    }
+
+    mutating func cancel() { pending = nil }
+
+    @discardableResult
+    mutating func complete(_ id: UUID) -> Bool {
+        guard pending?.id == id else { return false }
+        pending = nil
+        return true
+    }
+
+    @discardableResult
+    mutating func authorizationFinished(for id: UUID, succeeded: Bool, now: TimeInterval) -> Bool {
+        guard pending?.id == id, pending?.authorizationAttempted == true else { return false }
+        if succeeded { pending?.readinessDeadline = now + Self.readinessTimeout }
+        else { pending = nil }
+        return true
+    }
+
+    mutating func advance(readiness: ActivationReadiness, now: TimeInterval) -> ActivationStep {
+        guard let request = pending else { return .inactive }
+        let failure = readiness.safetyFailure
+            ?? (request.protectiveRevision != readiness.protectiveRevision
+                || (request.origin == .login && readiness.protectiveRevision.pending)
+                ? InsoniaFailure("error.sessionRecovered") : nil)
+        if let failure { pending = nil; return .failed(failure) }
+        if request.origin == .login && !readiness.helperReady {
+            pending = nil
+            return .failed("error.helperRequired")
+        }
+        if readiness.authorizationInProgress { return .waiting }
+        if now >= request.readinessDeadline {
+            pending = nil
+            return .failed(readiness.preparationFailure ?? InsoniaFailure(
+                readiness.helperReady ? "error.guardianStarting" : "error.authorization"))
+        }
+        if readiness.guardianRepairInProgress || readiness.recoveryPending { return .waiting }
+        if !readiness.helperReady {
+            guard !request.authorizationAttempted else { return .waiting }
+            var authorized = request
+            authorized.authorizationAttempted = true
+            pending = authorized
+            return .authorize(authorized)
+        }
+        guard readiness.guardianReady, !readiness.normalSleepPending else { return .waiting }
+        return .begin(request)
+    }
+}
+
 struct HelperReceipt {
     let version: Int
     let timestamp: TimeInterval
