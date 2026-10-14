@@ -168,6 +168,27 @@ final class FakeBrightness: BrightnessControlling {
         try coordinator.guardianWillTerminate()
         try check(!FileManager.default.fileExists(atPath: store.noticeURL.path), "inactive guardian shutdown creates no false warning")
         try check(!FileManager.default.fileExists(atPath: store.desiredURL.path), "inactive guardian shutdown does not mutate system request")
+        var synchronizedFiles: [String] = []
+        let receiptStore = RuntimeStore(base: output.appendingPathComponent("receipt-io"), synchronize: { url in
+            synchronizedFiles.append(url.lastPathComponent)
+        })
+        let receiptBrightness = FakeBrightness()
+        let receiptCoordinator = SessionCoordinator(store: receiptStore, brightness: receiptBrightness)
+        let receiptLease = try receiptCoordinator.begin(mode: .agents, pid: 123, uptime: 100)
+        try check(synchronizedFiles == ["session.json"], "initial session intent is durable")
+        synchronizedFiles.removeAll()
+        try receiptCoordinator.renew(id: receiptLease.id, mode: .agents, uptime: 101)
+        try GuardianCycle(coordinator: receiptCoordinator).tick(safety: safe, processAlive: { _ in true }, uptime: { 102 }, pid: 123)
+        try check(synchronizedFiles.isEmpty, "periodic lease and guardian receipts do not wait for disk flushes")
+        receiptBrightness.beforeWrite = { value in
+            if value < 0.1 {
+                try check(synchronizedFiles.contains("brightness-restore.json"), "brightness journal is synchronized before changing hardware")
+            }
+        }
+        try receiptCoordinator.dim(id: receiptLease.id)
+        try receiptCoordinator.end(id: receiptLease.id, reason: "safety.thermal")
+        try check(synchronizedFiles.contains("autostart-blocked.json") && synchronizedFiles.contains("notice.json"),
+            "protective decisions remain durable")
         try store.markUpdateRelaunch()
         try check(try store.consumeUpdateRelaunch(), "durable update relaunch marker is consumed")
         try check(try !store.consumeUpdateRelaunch(), "update marker suppresses only one launch")

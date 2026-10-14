@@ -33,6 +33,14 @@ fi
 codesign --verify --deep --strict "$TARGET"
 ARGS=(--open-panel)
 if [ "$RESUME" -eq 1 ]; then ARGS+=(--resume-active); fi
-open -a "$TARGET" --args "${ARGS[@]}"
+OPENED=0
+for attempt in 1 2 3; do
+    if open -a "$TARGET" --args "${ARGS[@]}"; then OPENED=1; break; fi
+    # LaunchServices can retain the just-terminated instance briefly after a
+    # bundle replacement. Refresh registration and retry without force-quitting.
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$TARGET"
+    sleep 1
+done
+[ "$OPENED" -eq 1 ] || { echo 'Installed, but macOS could not open Insonia. Open it from Applications.' >&2; exit 1; }
 echo "Installed: $TARGET"
 echo "Previous installation: $BACKUP"

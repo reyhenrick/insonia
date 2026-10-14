@@ -12,6 +12,10 @@ A native macOS menu bar app for long-running work, with optional display access 
 
 macOS **26 or later**. Universal binary for Apple silicon and compatible Intel Macs. Free and open source under the [MIT license](LICENSE).
 
+<p align="center">
+  <img src="docs/assets/panel.png" width="380" alt="Insonia panel with Keep awake active, display access for agents, login preferences, system protection, and the update button">
+</p>
+
 ## Install and start
 
 1. Download and open **Insonia-macOS.dmg**.

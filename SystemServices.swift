@@ -232,7 +232,9 @@ enum GuardianManager {
         }
         let job: [String: Any] = ["Label": label, "ProgramArguments": [executable],
             "RunAtLoad": true, "KeepAlive": true, "ThrottleInterval": 5,
-            "ProcessType": "Background", "ExitTimeOut": 5,
+            // This supervisor is required for the user's active power session.
+            // Background CPU/I/O throttling is incompatible with its deadline.
+            "ProcessType": "Interactive", "ExitTimeOut": 5,
             "EnvironmentVariables": ["INSONIA_GUARDIAN_VERSION": String(RuntimeStore.guardianVersion)]]
         try FileManager.default.createDirectory(at: plistURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let data = try PropertyListSerialization.data(fromPropertyList: job, format: .xml, options: 0)

@@ -87,13 +87,21 @@ final class RuntimeStore {
     let base: URL
     let runtime: URL
     private let writeData: (Data, URL) throws -> Void
+    private let synchronize: (URL) throws -> Void
 
     init(base: URL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Insonia"),
-        writeData: @escaping (Data, URL) throws -> Void = { try $0.write(to: $1, options: .atomic) }) {
+        writeData: @escaping (Data, URL) throws -> Void = { try $0.write(to: $1, options: .atomic) },
+        synchronize: @escaping (URL) throws -> Void = { url in
+            let fd = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
+            guard fd >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+            defer { close(fd) }
+            guard fsync(fd) == 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        }) {
         self.base = base
         runtime = base.appendingPathComponent("runtime")
         self.writeData = writeData
+        self.synchronize = synchronize
     }
 
     var desiredURL: URL { base.appendingPathComponent("desired-state") }
@@ -136,15 +144,13 @@ final class RuntimeStore {
         return try JSONDecoder().decode(type, from: Data(contentsOf: url))
     }
 
-    func write<T: Encodable>(_ value: T, to url: URL) throws {
+    func write<T: Encodable>(_ value: T, to url: URL, durable: Bool = true) throws {
         let data = try JSONEncoder().encode(value)
         try writeData(data, url)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        // The journal must reach disk before changing the physical display.
-        let fd = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
-        guard fd >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
-        defer { close(fd) }
-        guard fsync(fd) == 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        // Journals precede physical changes and must reach disk. Periodic
+        // liveness receipts need atomic visibility, not a disk flush per tick.
+        if durable { try synchronize(url) }
     }
 
     func remove(_ url: URL) throws {
@@ -271,7 +277,7 @@ final class SessionCoordinator {
             lease.mode = mode
             lease.heartbeatUptime = uptime
             lease.heartbeatDate = Date()
-            try store.write(lease, to: store.sessionURL)
+            try store.write(lease, to: store.sessionURL, durable: false)
             try store.heartbeat(sessionID: lease.id)
         }
     }
@@ -392,7 +398,7 @@ final class GuardianCycle {
             coordinator.store.log("guardian_recovery_pending reason=\(failure!.key)")
         }
         try coordinator.store.write(GuardianPulse(version: RuntimeStore.guardianVersion,
-            pid: pid, uptime: uptime(), recoveryFailure: failure), to: coordinator.store.guardianURL)
+            pid: pid, uptime: uptime(), recoveryFailure: failure), to: coordinator.store.guardianURL, durable: false)
     }
 }
 
