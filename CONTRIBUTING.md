@@ -77,11 +77,11 @@ scripts/verify-release.sh --require-feed dist
 
 The signing script reads the key directly from Keychain, signs the update feed and ZIP, and refreshes the checksums and metadata in `dist/`. It accepts another prepared output directory as its only optional argument. Sign the exact ZIP that will be published. Repackaging or modifying it afterward invalidates its signature and requires new checksums and signing.
 
-Publish the completed release assets under a new version tag. The appcast must point to the immutable version-specific ZIP URL, such as `https://github.com/reyhenrick/insonia/releases/download/v1.3.0/Insonia-macOS.zip`. Verify those assets are available before publishing the signed `appcast.xml` last. Never replace an archive already referenced by a published feed; correct it in a new version.
+Publish the completed release assets under a new version tag. The appcast must point to the immutable version-specific ZIP URL, such as `https://github.com/reyhenrick/insonia/releases/download/v1.0.0/Insonia-macOS.zip`. Verify those assets are available before publishing the signed `appcast.xml` last. Never replace an archive already referenced by a published feed; correct it in a new version.
 
 The app reads the stable feed at `https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml`. Preserve that endpoint when publishing a new release. Keep the signed archive's version, length, signature, checksum, and URL consistent with the feed. A public checksum is useful for manual verification, but it does not replace the update signature. Ed25519 update signing is also separate from Apple Developer ID signing and notarization.
 
-Version 1.2.0 requires one manual upgrade to 1.3.0 or later before in-app updates are available. Include that step in release notes for this transition. Test manual checks, default installation confirmation, the automatic-install preference, and deferred installation during an active or recovering session. A successful package check alone does not verify the installed-app update flow.
+Test manual checks, default installation confirmation, the automatic-install preference, and deferred installation during an active or recovering session. A successful package check alone does not verify the installed-app update flow.
 
 ## Open a useful issue or pull request
 

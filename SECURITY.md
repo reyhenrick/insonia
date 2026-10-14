@@ -14,11 +14,13 @@ Insonia has an unprivileged menu bar app, a user recovery monitor, and a privile
 
 The app must preserve manual locking and system authentication. It must not unlock a session, enter passwords, bypass FileVault, or grant another app Screen Recording or Accessibility access.
 
+Recovery timing depends on macOS scheduling. Closed-lid display access depends on macOS and the hardware; brightness control uses private `DisplayServices` interfaces that may change with OS updates. A universal binary includes Apple silicon and Intel code, but compilation alone does not establish physical behavior on either architecture.
+
 The current downloadable build is signed ad hoc, not with Apple Developer ID, and is not notarized. Download it from the [repository's Releases page](https://github.com/reyhenrick/insonia/releases). Checksums detect changed download bytes when compared with the published value; they do not replace publisher authentication or notarization.
 
 ## Update integrity
 
-Starting with version 1.3.0, Insonia uses Sparkle 2.10 to check GitHub Releases and verify the update feed and archives with Ed25519 signatures before installation. The public key is embedded in the app. The corresponding private key stays in the maintainer's local macOS Keychain under `com.henrick.insonia.sparkle`; it is not available to CI. Automated workflows validate code and packages without publishing releases.
+Insonia uses Sparkle 2.10 to check GitHub Releases and verify the update feed and archives with Ed25519 signatures before installation. The public key is embedded in the app. The corresponding private key stays in the maintainer's local macOS Keychain under `com.henrick.insonia.sparkle`; it is not available to CI. Automated workflows validate code and packages without publishing releases.
 
 The stable feed is `https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml`. Each entry references a version-specific archive URL and includes the archive's signature and length. Released archives are immutable: a correction requires a new version. Publication uploads and verifies the archives before making their signed feed available. These signatures authenticate updates against the key trusted by the installed app. They do not provide Apple Developer ID signing or notarization for the first manual installation.
 

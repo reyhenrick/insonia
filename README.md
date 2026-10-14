@@ -17,104 +17,65 @@ macOS **26 or later**. Universal binary for Apple silicon and compatible Intel M
 1. Download and open **Insonia-macOS.dmg**.
 2. Drag **Insonia** to **Applications**, then open it from Applications. You can eject the disk image afterward.
 3. Click the **lightning bolt in the menu bar** to open the panel.
-4. Choose **Install system protection** or **Update system protection**, then approve the native macOS administrator prompt. This installs the helper that changes sleep behavior and restores it after a failure.
+4. Choose **Install system protection** and approve the native macOS administrator prompt.
 5. Turn on **Keep awake** and wait for activation to be confirmed.
 
-Insonia lives in the menu bar, so it does not need a permanent Dock icon. Right-click the menu bar icon to toggle Keep awake. The disk image includes an English installation and usage guide that you can open in your browser.
+**First opening:** this release is signed ad hoc and has no Apple Developer ID signature or notarization. If macOS blocks the first launch, go to **System Settings → Privacy & Security → Open Anyway** and confirm **Open**, following [Apple's instructions](https://support.apple.com/en-us/102445). Managed Macs may restrict this option.
 
-### What system protection does
-
-System protection lets Insonia change your Mac's sleep behavior and recover if a session fails. A privileged service restores normal sleep when the app stops responding, and a separate recovery monitor restores saved display brightness. **Protection ready** confirms these services are responding. The initial installation and any required protection update use the native macOS administrator prompt.
-
-### First opening and Gatekeeper
-
-The download is **not signed with an Apple Developer ID and is not notarized by Apple**. macOS may block its first launch. If you trust this release, first try opening it, then go to **System Settings → Privacy & Security → Open Anyway** and confirm **Open**. This grants an exception for this app. Managed Macs may restrict this option. Follow [Apple's instructions for opening downloaded apps](https://support.apple.com/en-us/102445).
-
-If macOS says the app is damaged or will harm your computer, stop and download a fresh copy from this repository's Releases page. Report a persistent problem; do not disable macOS security checks.
-
-### Other download options
-
-- [ZIP archive](https://github.com/reyhenrick/insonia/releases/latest/download/Insonia-macOS.zip): unzip it, move Insonia to Applications, and follow the same steps above.
-- [SHA-256 checksums](https://github.com/reyhenrick/insonia/releases/latest/download/SHA256SUMS.txt): compare the hash of your download with the matching filename in this file. On macOS, run `shasum -a 256 Insonia-macOS.dmg` in the folder containing the download. A matching checksum verifies the downloaded bytes; it is not Apple notarization.
+The disk image includes an English guide with installation, usage, and troubleshooting instructions. A [ZIP archive](https://github.com/reyhenrick/insonia/releases/latest/download/Insonia-macOS.zip) and [SHA-256 checksums](https://github.com/reyhenrick/insonia/releases/latest/download/SHA256SUMS.txt) are also available.
 
 ## Choose how you work
 
-**Keep awake** keeps background tasks running with the lid closed. With agent access turned off, the display can sleep.
+- **Keep awake** keeps background tasks running with the lid closed. With agent access off, the display can sleep. Right-click the menu bar icon to toggle it directly.
+- **Allow agents to use the display** preserves an already unlocked graphical session. Enable it with the lid open and your Mac unlocked. Closing the lid dims the built-in display to at most 1%; reopening it or ending the session restores the saved brightness. External displays are unchanged.
+- **Open at login** launches Insonia when you sign in.
+- **Start active** requests Keep awake when the app launches. After a protective interruption, start the next session manually.
 
-**Allow agents to use the display** also preserves an already unlocked graphical session. Enable it with the lid open and the Mac unlocked, then turn on Keep awake. When you close the lid, Insonia reduces the built-in display's brightness to at most 1%. It restores the saved brightness when you open the lid or end the session. External displays are not dimmed.
+Manual locking, user switching, and system policies can pause visual access. Insonia preserves macOS authentication; it does not unlock the Mac or change FileVault. Your agent needs its own Screen Recording and Accessibility permissions. Check a real capture, click, and typing action with that agent before relying on closed-lid work.
 
-Agent mode does not unlock your Mac, enter passwords, or change FileVault. Locking the Mac manually, switching users, or a system policy can pause visual access. Screen Recording and Accessibility permissions belong to the agent that uses them, not to Insonia. Test an actual capture, click, and typing action with your agent before relying on closed-lid visual work.
+## Protection and recovery
 
-**Open at login** launches the app when you sign in. **Start active** requests Keep awake when the app launches. They are separate preferences. A protective shutdown requires you to start a new session yourself; Insonia does not silently reactivate it.
+**System protection** lets Insonia change sleep behavior and recover if a session fails. A privileged service restores normal sleep when the app stops responding, and a separate recovery monitor restores saved display brightness. **Protection ready** means these services are responding. Installing or updating protection uses the native macOS administrator prompt.
+
+Insonia pauses an active session at **15% battery or less when unplugged**, when it cannot check the battery while unplugged, when macOS reports serious or critical thermal pressure, or when recovery services need attention. Read the reason in the panel, resolve it, and turn Keep awake on when you are ready. **Repair monitor** and **Update system protection** are available when needed.
+
+Keep your Mac on a ventilated surface while it stays awake.
 
 ## Stay up to date
 
-Insonia checks for new versions automatically while it is open. Choose **Check for updates…** in the panel to check immediately. When a new version is found, the button reads **Update available** and a blue dot appears on the menu bar icon. By default, you choose when to install an available version. To receive and install future releases automatically, open the **…** menu and enable **Install updates automatically**.
+Insonia checks for releases automatically while it is open. Choose **Check for updates…** to check now. **Update available** and a blue dot on the menu bar icon indicate an available update. Installation asks for your approval by default. To receive and install releases automatically, enable **Install updates automatically** in the **…** menu.
 
-A ready update waits until **Keep awake** is off and normal sleep and brightness have been restored. Turn off Keep awake when your work finishes to allow installation. An update also waits while system protection is being installed, repaired, or removed.
+A downloaded update waits for **Keep awake** to be off, normal sleep and brightness to be restored, and any protection operation to finish. Turn off Keep awake when your work finishes to allow installation. The first launch after an update starts with Keep awake off; your **Start active** preference remains saved for later launches.
 
-The first launch after an update starts with Keep awake off. Turn it on when you want a new session. Your **Start active** preference remains saved for later launches.
-
-**Upgrading from version 1.2.0:** download version 1.3.0 or later, quit Insonia, replace the app in Applications, and reopen it once. Version 1.2.0 has no updater; subsequent versions can update from inside the app. If the panel asks for a system protection update, approve it separately through the macOS prompt.
-
-Updates are delivered through GitHub Releases. Insonia verifies the update feed and downloaded archives with the project's Ed25519 signing key before installation. This verification is separate from Apple Developer ID signing and notarization, which are still unavailable for the current release.
+Updates come from GitHub Releases. Insonia verifies the feed and downloaded archives with Ed25519 signatures before installation. See the [security policy](SECURITY.md) for the distribution and verification details.
 
 ## Your Mac's language, automatically
 
-Insonia supports **English, Portuguese, Spanish, French, German, and Italian**. It chooses a supported language from your macOS language preferences and uses English when none matches. To change your preference, use **System Settings → General → Language & Region**, then reopen Insonia. Documentation and the bundled guide are in English.
+The interface supports **English, Portuguese, Spanish, French, German, and Italian**, following macOS language preferences with English as the fallback. Adjust **System Settings → General → Language & Region** and reopen Insonia to change the language. Project documentation and the bundled guide are in English.
 
-## Recovery and limits
+## Privacy
 
-Insonia checks battery, temperature, and the health of its recovery services. It stops keeping the Mac awake when:
-
-- The Mac is on battery at **15% or less**, or the battery level cannot be checked.
-- macOS reports **serious or critical thermal pressure**.
-- The app or its recovery monitor cannot maintain a healthy session.
-
-An independent privileged helper returns the Mac to normal sleep behavior when the active session's signal expires. Brightness recovery keeps the saved value until restoration is confirmed. These are recovery mechanisms, not a real-time guarantee; macOS scheduling can delay them. Keep an active Mac on a ventilated surface, not inside a closed bag.
-
-Closed-lid display access depends on macOS and the hardware. Brightness control currently uses private `DisplayServices` interfaces, so a future macOS release can change this behavior. The universal build includes Intel code, but that does **not** constitute a physical test on Intel hardware.
-
-## If something needs attention
-
-**“The recovery monitor lost its signal.”** Insonia turned off Keep awake. Read the current protection status: a previous interruption can remain visible after protection recovers. Use **Repair monitor** if offered, or quit and reopen the app from Applications. If asked, update system protection. When the panel confirms protection is ready, start a new session manually. Repeated failures should be [reported with the app and macOS versions](https://github.com/reyhenrick/insonia/issues/new/choose).
-
-**The agent cannot see or use the display.** Open the lid, unlock the Mac, check the agent's Screen Recording and Accessibility permissions, and enable agent access before closing the lid again. A running background process alone does not confirm graphical access.
-
-**The app stopped on battery or while warm.** Connect power or let the Mac cool down, then turn Keep awake on again. The app will not restart a session automatically after a protective cutoff.
-
-**An update is ready but has not installed.** Finish your current work and turn off Keep awake. Installation waits for normal sleep and brightness recovery to finish. If protection needs attention, resolve the message in the panel first. Open Insonia from Applications to use the updater.
-
-**System protection needs an update.** Choose **Update system protection** and approve the macOS administrator prompt. This updates the recovery service. Users upgrading from a version before 1.2 also need the one-time update to helper v3.
+Power control and recovery run locally, with no account or analytics. The updater contacts GitHub and its download infrastructure; the hosting service receives ordinary request metadata such as your IP address. System profiling is disabled. Local recovery records contain power and session events, not screenshots or window contents.
 
 ## Remove Insonia
 
 1. Turn off **Keep awake** and **Open at login**.
-2. Open the panel's **…** menu, choose **Remove protection…**, and approve the macOS administrator prompt. Insonia restores normal sleep, removes the protection services, and quits when removal succeeds. Wait for the app to close.
+2. Choose **… → Remove protection…**, approve the macOS prompt, and wait for Insonia to restore normal sleep, remove its services, and close.
 3. Move **Insonia.app** from Applications to the Trash.
-
-Remove protection before deleting the app so its privileged service can be removed through the supported flow.
-
-## Privacy and network access
-
-Power control and recovery run locally. Insonia needs no account and collects no analytics. Its updater contacts GitHub and GitHub's release-download infrastructure to check for and download new versions; system profiling is disabled. These connections expose ordinary request metadata, such as your IP address, to the hosting service. Links you choose to open, such as the source repository, use your browser. Local recovery records contain power and session events, not screenshots or window contents.
 
 ## Build and contribute
 
-Bug reports, translations, documentation improvements, and code contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and the pull request workflow. Report security issues privately through [SECURITY.md](SECURITY.md).
+Bug reports, translations, compatibility testing, documentation, and code contributions are welcome under the MIT license. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and release signing. Report vulnerabilities through the [private security channel](SECURITY.md).
 
-With Xcode and a macOS 26 SDK or newer available:
+With Xcode, a macOS 26 SDK or newer, and Python 3:
 
 ```sh
 git clone https://github.com/reyhenrick/insonia.git
 cd insonia
 ./test.sh
 ./build.sh
-scripts/package-release.sh
 ```
 
-The build creates `build/Insonia.app` and includes Sparkle 2.10 for updates. Release packaging creates the DMG, an app-only ZIP, checksums, and signing metadata in `dist/`. These commands do not publish a release or install the system helper. By default, the locally built app is signed ad hoc; that signature is not an Apple Developer ID signature. The [contribution guide](CONTRIBUTING.md) describes the separate local update-signing and publication process.
-
-The app is written in Swift and SwiftUI. `PowerCore.swift` coordinates the interface and session, `PowerRuntime.swift` owns recovery state, `PowerPolicy.swift` defines safety rules, `guardian/main.swift` supervises the app, and the privileged helper applies and restores the system sleep setting.
+The Swift and SwiftUI build creates `build/Insonia.app` without installing privileged services. Use `scripts/package-release.sh` to prepare the downloadable archives locally.
 
 [Release notes](CHANGELOG.md) · [Report an issue](https://github.com/reyhenrick/insonia/issues/new/choose) · [MIT license](LICENSE)
