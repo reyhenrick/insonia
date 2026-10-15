@@ -56,10 +56,6 @@ try write("other-feed-key.xml", signed(Data(xml.utf8), key: untrusted))
 try write("utf16.xml", signed(xml.data(using: .utf16LittleEndian)!, key: trusted))
 
 let variants = [
-    "valid-build-tag": xml.replacingOccurrences(of: "/download/v1.3.0/", with: "/download/v1.3.0-build.4/"),
-    "wrong-build-tag": xml.replacingOccurrences(of: "/download/v1.3.0/", with: "/download/v1.3.0-build.5/"),
-    "wrong-version-build-tag": xml.replacingOccurrences(of: "/download/v1.3.0/", with: "/download/v1.4.0-build.4/"),
-    "noncanonical-build-tag": xml.replacingOccurrences(of: "/download/v1.3.0/", with: "/download/v1.3.0-build.04/"),
     "other-archive-key": xml.replacingOccurrences(of: archiveSignature, with: otherArchiveSignature),
     "wrong-build": xml.replacingOccurrences(of: "<sparkle:version>4", with: "<sparkle:version>5"),
     "wrong-version": xml.replacingOccurrences(of: "<sparkle:shortVersionString>1.3.0", with: "<sparkle:shortVersionString>1.3.1"),
@@ -197,15 +193,9 @@ class UpdateSignatureTests(unittest.TestCase):
         self.rejected('Enclosure version attributes are not allowed', feed='enclosure-version.xml')
 
     def test_archive_url_is_immutable_matching_github_tag(self):
-        for feed in ('latest-url', 'wrong-tag', 'wrong-host', 'insecure-url',
-                     'wrong-build-tag', 'wrong-version-build-tag', 'noncanonical-build-tag'):
+        for feed in ('latest-url', 'wrong-tag', 'wrong-host', 'insecure-url'):
             with self.subTest(feed=feed):
                 self.rejected('Update URL must use the matching immutable release tag', feed=feed + '.xml')
-
-    def test_build_tag_matches_the_signed_bundle(self):
-        result = self.verify(feed='valid-build-tag.xml')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Verified signed update: Insonia 1.3.0, build 4', result.stdout)
 
     def test_invalid_archive_signature_and_length(self):
         self.rejected('Archive length mismatch', feed='wrong-length.xml')

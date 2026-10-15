@@ -108,9 +108,7 @@ scripts/verify-release.sh --require-feed dist
 
 The signing script reads the key directly from Keychain, signs the update feed and ZIP, and refreshes the checksums and metadata in `dist/`. It accepts another prepared output directory as its only optional argument. Sign the exact ZIP that will be published. Repackaging or modifying it afterward invalidates its signature and requires new checksums and signing.
 
-Publish the completed release assets under a new tag. Normally use `v<version>`. For a new build of an existing public version, use `v<version>-build.<build>` and set `INSONIA_RELEASE_TAG` to that exact tag when running `scripts/sign-release.sh`. The build number must always increase, including when correcting the displayed version. The signing script and release workflow check both values against the bundle.
-
-The appcast must point to the immutable tagged ZIP URL, such as `https://github.com/reyhenrick/insonia/releases/download/v1.0.0-build.7/Insonia-macOS.zip`. Verify those assets are available before publishing the signed `appcast.xml` last. Never replace an archive already referenced by a published feed; publish a new tag and preserve the earlier download URLs.
+Publish the completed release assets under a new version tag. The appcast must point to the immutable version-specific ZIP URL, such as `https://github.com/reyhenrick/insonia/releases/download/v1.0.0/Insonia-macOS.zip`. Verify those assets are available before publishing the signed `appcast.xml` last. Never replace an archive already referenced by a published feed; correct it in a new version.
 
 The app reads the stable feed at `https://github.com/reyhenrick/insonia/releases/latest/download/appcast.xml`. Preserve that endpoint when publishing a new release. Keep the signed archive's version, length, signature, checksum, and URL consistent with the feed. A public checksum is useful for manual verification, but it does not replace the update signature. Ed25519 update signing is also separate from Apple Developer ID signing and notarization.
 

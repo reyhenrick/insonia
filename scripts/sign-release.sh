@@ -24,11 +24,6 @@ APP="$STAGING/unpacked/Insonia.app"
 INFO="$APP/Contents/Info.plist"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO")
 BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO")
-RELEASE_TAG="${INSONIA_RELEASE_TAG:-v$VERSION}"
-if [ "$RELEASE_TAG" != "v$VERSION" ] && [ "$RELEASE_TAG" != "v$VERSION-build.$BUILD_NUMBER" ]; then
-    echo 'The release tag must match the bundle version, optionally followed by -build. and its build number.' >&2
-    exit 1
-fi
 PUBLIC_KEY=$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$INFO")
 REQUIRE_SIGNED_FEED=$(/usr/libexec/PlistBuddy -c 'Print :SURequireSignedFeed' "$INFO")
 [ "$REQUIRE_SIGNED_FEED" = true ] || { echo 'The application must require signed feeds.' >&2; exit 1; }
@@ -45,7 +40,7 @@ notes = section.group(1).strip() if section else f'Insonia {version}'
 Path(output).write_text(notes + '\n')
 PY
 "$GENERATOR" --account com.henrick.insonia.sparkle \
-    --download-url-prefix "https://github.com/reyhenrick/insonia/releases/download/$RELEASE_TAG/" \
+    --download-url-prefix "https://github.com/reyhenrick/insonia/releases/download/v$VERSION/" \
     --link 'https://github.com/reyhenrick/insonia' --embed-release-notes \
     --maximum-deltas 0 --maximum-versions 1 --versions "$BUILD_NUMBER" \
     -o "$ARCHIVES/appcast.xml" "$ARCHIVES"

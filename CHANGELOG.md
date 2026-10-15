@@ -16,5 +16,3 @@ Initial public release.
 - MIT-licensed source code, contribution instructions, issue templates, and private security reporting.
 
 Requires macOS 26 or later. The universal build includes Apple silicon and Intel code. See the [installation instructions](README.md#install-and-start) before first use.
-
-The current download is build 7. It consolidates the initial release under version 1.0.0 and updates earlier builds, including build 6, which was distributed as 1.0.1. Earlier signed archives retain their original URLs.
