@@ -1,18 +1,12 @@
 # Changelog
 
-## 1.0.1 (2026-10-14)
-
-- Insonia prepares its required background services when Keep awake is first enabled, with native macOS authorization when needed.
-- Cancelling setup leaves Keep awake off. Another explicit activation retries setup.
-- The panel focuses on the session, preferences, and updates. Recovery runs automatically in the background.
-- The README panel image uses transparent corners.
-
-## 1.0.0 (2026-10-14)
+## 1.0.0 (2026-10-15)
 
 Initial public release.
 
 - Native macOS menu bar controls for keeping background work active with the lid closed.
 - Optional display access for visual agents, with built-in display dimming and brightness restoration.
+- Automatic setup when Keep awake is first enabled, with native macOS authorization when needed. Cancelling leaves Keep awake off; another explicit activation retries setup.
 - Independent recovery services, battery and thermal cutoffs, and manual session restart after a protective interruption.
 - English, Portuguese, Spanish, French, German, and Italian interfaces selected from macOS language preferences.
 - Separate Open at login and Start active preferences.
@@ -22,3 +16,5 @@ Initial public release.
 - MIT-licensed source code, contribution instructions, issue templates, and private security reporting.
 
 Requires macOS 26 or later. The universal build includes Apple silicon and Intel code. See the [installation instructions](README.md#install-and-start) before first use.
+
+The current download is build 7. It consolidates the initial release under version 1.0.0 and updates earlier builds, including build 6, which was distributed as 1.0.1. Earlier signed archives retain their original URLs.

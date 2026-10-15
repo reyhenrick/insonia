@@ -30,5 +30,13 @@ struct UpdaterContractTests {
         // Merely constructing the model does not start networking or services.
         guard !updater.canPerformUpdateAction, !updater.updateAvailable else { exit(1) }
         print("PASS: \(selectors.count) Sparkle delegate contracts; updater remains stopped until start")
+        let comparator = SUStandardVersionComparator.default
+        for previous in ["5", "6"] {
+            guard comparator.compareVersion("7", toVersion: previous) == .orderedDescending else {
+                fputs("FAIL: build 7 must update installed build \(previous)\n", stderr)
+                exit(1)
+            }
+        }
+        print("PASS: build 7 supersedes both previous public builds using Sparkle's comparator")
     }
 }
