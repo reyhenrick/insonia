@@ -1,3 +1,5 @@
+**English** · [Português (Brasil)](docs/readme/README_pt-BR.md) · [Español](docs/readme/README_es.md) · [Français](docs/readme/README_fr.md) · [Deutsch](docs/readme/README_de.md) · [Italiano](docs/readme/README_it.md)
+
 <p align="center">
   <img src="docs/assets/icon.png" width="96" height="96" alt="Insonia app icon">
 </p>

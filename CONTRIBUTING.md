@@ -51,7 +51,7 @@ The interface uses `Resources/<language>.lproj/Localizable.strings`. The current
 
 1. Keep every key and placeholder, including `{0}` and `{1}`, unchanged. Translate their values.
 2. Keep **Insonia** unaccented in every language. Preserve factual macOS API and file names.
-3. Keep the English documentation in `Resources/Help/index.html` and `README.md` consistent when instructions or UI labels change. The app interface is multilingual; project documentation is in English.
+3. Keep `README.md` as the canonical English README and update its translations in `docs/readme/` when instructions or UI labels change. Keep the language links working in every version and use the labels from the matching interface catalog. The bundled guide in `Resources/Help/index.html` and the contributor and security documentation remain in English.
 4. Run `./test.sh` and `./build.sh`, then check the real panel in the selected language. Check long messages, buttons, and error states for clipping. The bundled guide stays in English.
 
 For a new interface language, update language selection and bundle registration as well as the strings. A new `.strings` file by itself does not establish complete support. Include the language and region you tested in your pull request.
