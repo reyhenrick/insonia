@@ -48,8 +48,12 @@ final class FakeBrightness: BrightnessControlling {
         try check(!LeasePolicy.isFresh(heartbeat: 100, now: 130.01), "expired heartbeat")
         try check(!LeasePolicy.isFresh(heartbeat: 100, now: 99), "reboot/future heartbeat")
         try check(!LeasePolicy.isFresh(heartbeat: .nan, now: 100), "invalid heartbeat")
-        try check(SafetyReading(onBattery: true, batteryPercent: 15, thermalState: .nominal).stopReason != nil, "battery cutoff")
-        try check(SafetyReading(onBattery: true, batteryPercent: 16, thermalState: .nominal).stopReason == nil, "battery above cutoff")
+        for percent in [0, 1, 5, 10, 14, 15, 16, 100] {
+            for thermalState in [ProcessInfo.ThermalState.nominal, .fair] {
+                try check(SafetyReading(onBattery: true, batteryPercent: percent, thermalState: thermalState).stopReason == nil,
+                    "battery percentage \(percent) does not block use")
+            }
+        }
         try check(SafetyReading(onBattery: false, batteryPercent: 4, thermalState: .nominal).stopReason == nil, "charging allowed")
         try check(SafetyReading(onBattery: true, batteryPercent: nil, thermalState: .nominal).stopReason != nil, "unknown battery fails closed")
         try check(SafetyReading(onBattery: false, batteryPercent: 99, thermalState: .serious).stopReason != nil, "thermal cutoff on AC")
@@ -443,11 +447,17 @@ final class FakeBrightness: BrightnessControlling {
             expectedProtectiveRevision: store.protectiveStopRevision())
         try coordinator.recoverIfNeeded(now: 501, processAlive: { _ in false }, safety: safe)
         try check(try store.read(SessionLease.self, at: store.sessionURL) == nil, "dead app recovered immediately")
-        _ = try coordinator.begin(mode: .background, pid: 104, uptime: 600,
-            expectedProtectiveRevision: store.protectiveStopRevision())
-        try coordinator.recoverIfNeeded(now: 601, processAlive: { _ in true },
-            safety: SafetyReading(onBattery: true, batteryPercent: 10, thermalState: .nominal))
-        try check(try store.read(SessionLease.self, at: store.sessionURL) == nil, "guardian enforces battery limit")
+        for mode in [LidMode.background, .agents] {
+            let lowBatterySession = try coordinator.begin(mode: mode, pid: 104, uptime: 600,
+                expectedProtectiveRevision: store.protectiveStopRevision())
+            if mode == .agents { try coordinator.dim(id: lowBatterySession.id) }
+            try coordinator.recoverIfNeeded(now: 601, processAlive: { _ in true },
+                safety: SafetyReading(onBattery: true, batteryPercent: 10, thermalState: .nominal))
+            try check(try store.read(SessionLease.self, at: store.sessionURL)?.id == lowBatterySession.id,
+                "guardian keeps \(mode) session active below 15 percent")
+            try coordinator.end(id: lowBatterySession.id)
+            try check(fake.value == 0.6, "normal stop restores brightness after a low-battery session")
+        }
         _ = try coordinator.begin(mode: .agents, pid: 105, uptime: 700,
             expectedProtectiveRevision: store.protectiveStopRevision())
         try coordinator.recoverIfNeeded(now: 701, processAlive: { _ in true },

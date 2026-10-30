@@ -36,7 +36,7 @@ Per gli agenti che interagiscono con le finestre del browser o di altre app, att
 
 Per accedere mentre sei fuori, lascia il Mac connesso a Internet e usa i controlli remoti del tuo agente o lo strumento di accesso remoto che utilizzi già. Insonia gestisce la modalità di stop del Mac; l’accesso remoto si configura separatamente.
 
-Tieni il Mac su una superficie ben ventilata mentre lavora. Insonia si mette in pausa quando la batteria raggiunge il 15% o meno, se il Mac è scollegato dall’alimentazione, oppure quando macOS segnala una condizione termica grave.
+Tieni il Mac su una superficie ben ventilata mentre lavora. Insonia può funzionare a batteria con qualsiasi livello di carica. Si mette in pausa quando macOS segnala una condizione termica grave o critica.
 
 ## Aggiornamenti
 

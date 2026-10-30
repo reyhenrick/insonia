@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Allow sessions to start and continue below 15% battery.
+
 ## 1.0.0 (2026-10-15)
 
 Initial public release.

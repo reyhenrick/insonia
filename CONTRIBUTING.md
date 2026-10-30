@@ -39,7 +39,7 @@ Packaging creates `dist/Insonia-macOS.dmg`, `dist/Insonia-macOS.zip`, `dist/SHA2
 
 Inspect both sides of a contract before changing it. A successful power command is not enough to confirm a session: activation must belong to the current session, and recovery must remain possible if a process exits or stops responding. Keep UI messages consistent with states the runtime actually confirms.
 
-Do not remove manual-lock handling, battery and thermal cutoffs, session identity checks, or recovery records to make a test pass. Preserve the saved brightness until restoration is verified. Privileged code must not execute scripts from locations writable by an unprivileged user.
+Do not remove manual-lock handling, power-source validation, thermal cutoffs, session identity checks, or recovery records to make a test pass. Battery percentage does not block an otherwise healthy session. Preserve the saved brightness until restoration is verified. Privileged code must not execute scripts from locations writable by an unprivileged user.
 
 Recovery is intrinsic to Keep awake. A user request to activate it starts any required setup, including the native macOS administrator prompt for the privileged helper. Activation must wait for setup and recovery readiness. Cancelling authorization leaves Keep awake off and clears the pending activation; only another explicit activation request retries. Background checks and automatic startup must not repeatedly open authorization prompts.
 

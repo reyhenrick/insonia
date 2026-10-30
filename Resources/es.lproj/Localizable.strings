@@ -26,7 +26,7 @@
 "error.login" = "No se pudo cambiar el inicio automático al iniciar sesión: {0}";
 "error.authorization" = "La configuración no se completó. Activa Mantener activo de nuevo y autoriza la solicitud de macOS.";
 "safety.thermal" = "En pausa para que el Mac se enfríe. Vuelve a activarlo cuando baje la temperatura.";
-"safety.battery" = "En pausa: batería al {0} %. Conecta el cargador antes de volver a activarlo.";
+"safety.battery" = "Interrupción anterior: batería al {0} %.";
 "safety.unknownBattery" = "No se pudo comprobar el nivel de batería. Conecta el cargador antes de empezar.";
 "error.sessionLockOpen" = "No se pudo abrir el bloqueo de la sesión.";
 "error.sessionLock" = "No se pudo bloquear el estado de la sesión.";
@@ -64,7 +64,7 @@
 "ui.lidClosed" = "con la tapa cerrada";
 "ui.agents" = "Permitir que los agentes usen la pantalla";
 "ui.agentsDescription" = "Mantiene la sesión disponible y reduce el brillo al cerrar la tapa. Restaura el brillo al abrirla.";
-"ui.safety" = "Se pausa cuando la batería llega al 15 % o menos, o si el Mac se calienta demasiado. Bloquear el Mac pausa el acceso visual.";
+"ui.safety" = "Se pausa si el Mac se calienta demasiado. Bloquear el Mac pausa el acceso visual.";
 "ui.login" = "Abrir al iniciar sesión";
 "ui.startActive" = "Activar al iniciar";
 "ui.quit" = "Salir";

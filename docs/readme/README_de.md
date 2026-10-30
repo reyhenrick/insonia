@@ -36,7 +36,7 @@ Für Agenten, die mit Browser- oder App-Fenstern interagieren, aktiviere außerd
 
 Für den Zugriff von unterwegs lässt du den Mac mit dem Internet verbunden und nutzt die Fernsteuerung deines Agenten oder dein vorhandenes Fernzugriffstool. Insonia steuert das Ruhezustandsverhalten des Mac; den Fernzugriff richtest du separat ein.
 
-Lass den Mac während der Arbeit auf einer gut belüfteten Fläche stehen. Insonia pausiert bei einem Akkustand von 15 % oder weniger, wenn kein Netzteil angeschlossen ist, oder wenn macOS eine erhebliche thermische Belastung meldet.
+Lass den Mac während der Arbeit auf einer gut belüfteten Fläche stehen. Insonia kann bei jedem Ladestand im Akkubetrieb laufen. Es pausiert, wenn macOS eine erhebliche oder kritische thermische Belastung meldet.
 
 ## Updates
 

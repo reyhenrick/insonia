@@ -26,7 +26,7 @@
 "error.login" = "Der Start bei der Anmeldung konnte nicht geändert werden: {0}";
 "error.authorization" = "Die Einrichtung wurde nicht abgeschlossen. Aktiviere Mac wach halten erneut und bestätige die macOS-Abfrage.";
 "safety.thermal" = "Pausiert, damit dein Mac abkühlen kann. Aktiviere Insonia erneut, wenn die Temperatur gesunken ist.";
-"safety.battery" = "Pausiert: Akku bei {0} %. Schließe das Netzteil an, bevor du Insonia erneut aktivierst.";
+"safety.battery" = "Vorherige Unterbrechung: Akku bei {0} %.";
 "safety.unknownBattery" = "Der Akkustand konnte nicht geprüft werden. Schließe vor dem Start das Netzteil an.";
 "error.sessionLockOpen" = "Die Sitzungssperre konnte nicht geöffnet werden.";
 "error.sessionLock" = "Der Sitzungsstatus konnte nicht gesperrt werden.";
@@ -64,7 +64,7 @@
 "ui.lidClosed" = "bei geschlossenem Deckel";
 "ui.agents" = "Agenten die Bildschirmnutzung erlauben";
 "ui.agentsDescription" = "Hält die Sitzung verfügbar und dimmt den Bildschirm beim Schließen des Deckels. Stellt die Helligkeit beim Öffnen wieder her.";
-"ui.safety" = "Pausiert bei 15 % Akku oder weniger oder wenn dein Mac zu warm wird. Das Sperren des Mac pausiert den Bildschirmzugriff.";
+"ui.safety" = "Pausiert, wenn dein Mac zu warm wird. Das Sperren des Mac pausiert den Bildschirmzugriff.";
 "ui.login" = "Bei Anmeldung öffnen";
 "ui.startActive" = "Beim Start aktivieren";
 "ui.quit" = "Beenden";

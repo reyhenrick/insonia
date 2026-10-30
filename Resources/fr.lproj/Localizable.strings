@@ -26,7 +26,7 @@
 "error.login" = "Impossible de modifier le lancement à l’ouverture de session : {0}";
 "error.authorization" = "La configuration n’a pas été terminée. Réactivez Empêcher la mise en veille et autorisez la demande de macOS.";
 "safety.thermal" = "En pause pour laisser votre Mac refroidir. Réactivez Insonia lorsque la température baisse.";
-"safety.battery" = "En pause : batterie à {0} %. Branchez le chargeur avant de réactiver Insonia.";
+"safety.battery" = "Interruption précédente : batterie à {0} %.";
 "safety.unknownBattery" = "Impossible de vérifier le niveau de la batterie. Branchez le chargeur avant de démarrer.";
 "error.sessionLockOpen" = "Impossible d’ouvrir le verrou de la session.";
 "error.sessionLock" = "Impossible de verrouiller l’état de la session.";
@@ -64,7 +64,7 @@
 "ui.lidClosed" = "avec le capot fermé";
 "ui.agents" = "Autoriser les agents à utiliser l’écran";
 "ui.agentsDescription" = "Garde la session accessible et réduit la luminosité lorsque vous fermez le capot. Rétablit la luminosité lorsque vous l’ouvrez.";
-"ui.safety" = "Se met en pause lorsque la batterie atteint 15 % ou moins, ou si votre Mac chauffe trop. Le verrouillage du Mac met l’accès visuel en pause.";
+"ui.safety" = "Se met en pause si votre Mac chauffe trop. Le verrouillage du Mac met l’accès visuel en pause.";
 "ui.login" = "Ouvrir à la connexion";
 "ui.startActive" = "Activer au démarrage";
 "ui.quit" = "Quitter";

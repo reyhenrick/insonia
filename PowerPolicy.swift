@@ -13,9 +13,6 @@ struct SafetyReading {
         if thermalState == .serious || thermalState == .critical {
             return "safety.thermal"
         }
-        if onBattery, let batteryPercent, batteryPercent <= 15 {
-            return InsoniaFailure("safety.battery", String(batteryPercent))
-        }
         if onBattery && batteryPercent == nil {
             return "safety.unknownBattery"
         }

@@ -27,7 +27,7 @@
 "error.login" = "Não consegui alterar a abertura no login: {0}";
 "error.authorization" = "A configuração não foi concluída. Ative Manter acordado novamente e autorize no diálogo do macOS.";
 "safety.thermal" = "Pausado para o Mac esfriar. Reative quando a temperatura baixar.";
-"safety.battery" = "Pausado: bateria em {0}%. Conecte o carregador antes de reativar.";
+"safety.battery" = "Interrupção anterior: bateria em {0}%.";
 "safety.unknownBattery" = "Não foi possível conferir a bateria. Conecte o carregador antes de ativar.";
 "error.sessionLockOpen" = "Não consegui abrir o controle da sessão.";
 "error.sessionLock" = "Não consegui proteger o estado da sessão.";
@@ -65,7 +65,7 @@
 "ui.lidClosed" = "com a tampa fechada";
 "ui.agents" = "Permitir uso da tela por agentes";
 "ui.agentsDescription" = "Mantém a sessão disponível e reduz o brilho ao fechar. Restaura o brilho ao abrir.";
-"ui.safety" = "Pausa automática com bateria em 15% ou menos, ou temperatura elevada. O bloqueio manual pausa o uso visual.";
+"ui.safety" = "Pausa automática com temperatura elevada. O bloqueio manual pausa o uso visual.";
 "ui.login" = "Abrir no login";
 "ui.startActive" = "Começar ativo";
 "ui.quit" = "Sair";

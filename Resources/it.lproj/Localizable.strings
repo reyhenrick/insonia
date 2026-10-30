@@ -26,7 +26,7 @@
 "error.login" = "Impossibile modificare l’avvio automatico al login: {0}";
 "error.authorization" = "La configurazione non è stata completata. Riattiva Mantieni attivo e autorizza la richiesta di macOS.";
 "safety.thermal" = "In pausa per lasciare raffreddare il Mac. Riattiva Insonia quando la temperatura scende.";
-"safety.battery" = "In pausa: batteria al {0}%. Collega l’alimentatore prima di riattivare Insonia.";
+"safety.battery" = "Interruzione precedente: batteria al {0}%.";
 "safety.unknownBattery" = "Impossibile verificare il livello della batteria. Collega l’alimentatore prima di iniziare.";
 "error.sessionLockOpen" = "Impossibile aprire il blocco della sessione.";
 "error.sessionLock" = "Impossibile bloccare lo stato della sessione.";
@@ -64,7 +64,7 @@
 "ui.lidClosed" = "con il coperchio chiuso";
 "ui.agents" = "Consenti agli agenti di usare lo schermo";
 "ui.agentsDescription" = "Mantiene disponibile la sessione e riduce la luminosità quando chiudi il coperchio. Ripristina la luminosità quando lo apri.";
-"ui.safety" = "Si mette in pausa con la batteria al 15% o meno, o se il Mac si scalda troppo. Bloccare il Mac mette in pausa l’accesso visivo.";
+"ui.safety" = "Si mette in pausa se il Mac si scalda troppo. Bloccare il Mac mette in pausa l’accesso visivo.";
 "ui.login" = "Apri al login";
 "ui.startActive" = "Attiva all’avvio";
 "ui.quit" = "Esci";

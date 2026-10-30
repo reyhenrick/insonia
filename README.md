@@ -36,7 +36,7 @@ For agents that interact with browser or app windows, also enable **Allow agents
 
 For access while you're away, keep the Mac connected to the internet and use your agent's remote controls or your existing remote-access tool. Insonia handles the Mac's sleep behavior; remote access is configured separately.
 
-Keep the Mac on a ventilated surface while it works. Insonia pauses at 15% battery or less when unplugged, or when macOS reports serious thermal pressure.
+Keep the Mac on a ventilated surface while it works. Insonia can run on battery at any charge level. It pauses when macOS reports serious or critical thermal pressure.
 
 ## Updates
 

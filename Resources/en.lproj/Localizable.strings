@@ -27,7 +27,7 @@
 "error.login" = "Could not change login startup: {0}";
 "error.authorization" = "Setup was not completed. Turn on Keep awake to try again and approve the macOS prompt.";
 "safety.thermal" = "Paused to let your Mac cool down. Restart when the temperature drops.";
-"safety.battery" = "Paused: battery at {0}%. Connect power before restarting.";
+"safety.battery" = "Previous interruption: battery at {0}%.";
 "safety.unknownBattery" = "Battery level could not be checked. Connect power before starting.";
 "error.sessionLockOpen" = "Could not open the session lock.";
 "error.sessionLock" = "Could not lock the session state.";
@@ -65,7 +65,7 @@
 "ui.lidClosed" = "with the lid closed";
 "ui.agents" = "Allow agents to use the display";
 "ui.agentsDescription" = "Keeps the session available and dims the display when you close the lid. Restores brightness when you open it.";
-"ui.safety" = "Pauses at 15% battery or less, or when your Mac gets too warm. Locking the Mac pauses visual access.";
+"ui.safety" = "Pauses when your Mac gets too warm. Locking the Mac pauses visual access.";
 "ui.login" = "Open at login";
 "ui.startActive" = "Start active";
 "ui.quit" = "Quit";

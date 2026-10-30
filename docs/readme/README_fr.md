@@ -36,7 +36,7 @@ Pour les agents qui interagissent avec les fenêtres du navigateur ou d’autres
 
 Pour accéder au Mac pendant vos déplacements, laissez-le connecté à Internet et utilisez les commandes à distance de votre agent ou votre outil habituel d’accès à distance. Insonia gère la mise en veille du Mac ; l’accès à distance se configure séparément.
 
-Laissez le Mac sur une surface bien ventilée pendant qu’il travaille. Insonia se met en pause lorsque la batterie atteint 15 % ou moins, si le Mac est débranché, ou lorsque macOS signale une contrainte thermique importante.
+Laissez le Mac sur une surface bien ventilée pendant qu’il travaille. Insonia peut fonctionner sur batterie quel que soit le niveau de charge. Il se met en pause lorsque macOS signale une contrainte thermique importante ou critique.
 
 ## Mises à jour
 
