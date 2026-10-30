@@ -252,7 +252,7 @@
           <pre><code>./test.sh
 ./build.sh
 scripts/package-release.sh</code></pre>
-          <p>The build creates <code>build/Insonia.app</code> with the Sparkle updater. Packaging creates the DMG, app-only ZIP, checksums, and signing metadata in <code>dist/</code> without publishing or installing the system helper. The contribution guide covers the separate local signing and release process.</p>
+          <p>The build creates <code>build/products.noindex/Insonia.app</code> with the Sparkle updater, replacing its previous product after validation. Packaging creates the DMG, app-only ZIP, checksums, and signing metadata in <code>dist/</code> without publishing or installing the system helper. The contribution guide covers the separate local installation, signing and release process.</p>
           <h3>Privacy and network access</h3>
           <p>Power control and recovery run locally. Insonia needs no account and collects no analytics. The updater connects to GitHub and its release-download infrastructure to check for and download new versions. System profiling is disabled. The hosting service receives ordinary request metadata, such as your IP address.</p>
           <p>Recovery records stay on your Mac and contain power and session events, not screenshots or window contents. Links you choose to open use your browser.</p>

@@ -239,6 +239,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+if CommandLine.arguments.contains("--prepare-local-update") || CommandLine.arguments.contains("--check-local-update") {
+    do {
+        let store = RuntimeStore()
+        let idle = try store.locked {
+            MacState.rootProperty("SleepDisabled") == false && [store.sessionURL, store.brightnessURL].allSatisfy { url in
+                var information = stat()
+                return lstat(url.path, &information) != 0 && errno == ENOENT
+            }
+        }
+        guard idle else {
+            throw InsoniaFailure("error.updateRecovery")
+        }
+        if CommandLine.arguments.contains("--prepare-local-update") { try store.markUpdateRelaunch() }
+        FileHandle.standardOutput.write(Data("{\"ok\":true}\n".utf8))
+        exit(0)
+    } catch {
+        FileHandle.standardOutput.write(Data("{\"ok\":false,\"error\":\"error.updateRecovery\"}\n".utf8))
+        exit(1)
+    }
+}
+
 if CommandLine.arguments.contains("--diagnostics") {
     let store = RuntimeStore()
     let lease = try? store.read(SessionLease.self, at: store.sessionURL)

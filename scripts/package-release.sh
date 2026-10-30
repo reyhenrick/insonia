@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP="$PWD/build/Insonia.app"
+APP="$PWD/build/products.noindex/Insonia.app"
 [ -d "$APP" ] || { echo 'Run ./build.sh first.' >&2; exit 1; }
 ./scripts/verify-release.sh --app "$APP"
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")

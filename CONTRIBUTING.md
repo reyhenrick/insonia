@@ -18,7 +18,11 @@ git switch -c describe-your-change
 ./build.sh
 ```
 
-`./test.sh` runs runtime and helper checks using isolated test state. `./build.sh` creates `build/Insonia.app` with the pinned Sparkle 2.10 updater; it does not replace an installed app or install privileged services. Build output is signed ad hoc for local use. It is not Developer ID signed or notarized.
+`./test.sh` runs runtime and helper checks using isolated test state. `./build.sh` creates `build/products.noindex/Insonia.app` with the pinned Sparkle 2.10 updater; it does not replace an installed app or install privileged services. Build output is signed ad hoc for local use. It is not Developer ID signed or notarized.
+
+Successful builds replace the previous product and remove their temporary rollback copy after validation. The product directory is excluded from Spotlight indexing, and the build removes its development product from Launch Services registration. A product at the former `build/Insonia.app` path is removed only after its replacement is verified and the former copy is idle. Interrupted replacement state remains in one private transaction directory for recovery, rather than creating timestamped application archives.
+
+Use `./install-app.sh` to replace the local `/Applications/Insonia.app`. Installation requires Keep awake to be off and normal sleep and brightness recovery to be complete. It waits for the verified app and recovery monitor to stop, validates the replacement, and removes the retired bundle only after the new app and monitor are confirmed. A failed or uncertain recovery preserves its transaction files and reports the pending recovery. The first updated launch leaves Keep awake off while retaining the Start active preference.
 
 To produce the downloadable archives after a successful build:
 

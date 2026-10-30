@@ -54,10 +54,11 @@ codesign "${SIGNING_ARGS[@]}" "$APP/Contents/Helpers/InsoniaGuard"
 codesign "${SIGNING_ARGS[@]}" "$APP"
 ./scripts/verify-release.sh --app "$APP"
 
-if [ -e build/Insonia.app ]; then
-    mkdir -p build/previous
-    mv build/Insonia.app "build/previous/Insonia-$(date -u +%Y%m%dT%H%M%SZ)-$$.app"
+PRODUCT="$PWD/build/products.noindex/Insonia.app"
+mkdir -p "$(dirname "$PRODUCT")"
+python3 scripts/app_bundle.py replace --source "$APP" --target "$PRODUCT" --reference "$PWD/Info.plist" --unregister-target
+if [ -e build/Insonia.app ] || [ -L build/Insonia.app ]; then
+    python3 scripts/app_bundle.py retire --path "$PWD/build/Insonia.app" --reference "$PWD/Info.plist" --replacement "$PRODUCT"
 fi
-mv "$APP" build/Insonia.app
-echo "Built and verified: $PWD/build/Insonia.app"
+echo "Built and verified: $PRODUCT"
 echo 'Create downloads with ./scripts/package-release.sh.'

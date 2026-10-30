@@ -12,6 +12,8 @@ xcrun swiftc -target "$(uname -m)-apple-macos26.0" -framework AppKit -framework 
     PowerCore.swift AppUpdater.swift tests/UpdaterContractTests.swift -o build/updater-contract-tests
 ./build/updater-contract-tests
 /usr/bin/python3 tests/test_localizations.py
+python3 tests/test_app_bundle.py
+python3 tests/test_app_install.py
 /usr/bin/python3 tests/test_helper.py
 /usr/bin/python3 tests/test_installer.py
 /usr/bin/python3 tests/test_update_signatures.py
